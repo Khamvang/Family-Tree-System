@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Styles'); ?>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+</head>
+<body>
+  <div class="lang-switch-fixed">
+    <button type="button" class="lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+    <button type="button" class="lang-btn" data-lang="lo" onclick="setLanguage('lo')">ລາວ</button>
+    <button type="button" class="lang-btn" data-lang="hmn" onclick="setLanguage('hmn')">Hmoob</button>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h1>🌳 Family Tree</h1>
+      <nav>
+        <a class="nav-item active" id="navForm" onclick="showPanel('form')">📝 <span data-i18n="nav_form">Add / Edit Member</span></a>
+        <a class="nav-item" id="navTree" onclick="showPanel('tree')">🌲 <span data-i18n="nav_tree">Family Tree</span></a>
+        <a class="nav-item" id="navGuide" onclick="showPanel('guide')">📖 <span data-i18n="nav_guide">Guideline</span></a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <!-- ================= PANEL: Add / Edit Member ================= -->
+      <section id="panel-form" class="panel active">
+        <div class="container">
+          <h1 data-i18n="form_h1">📝 Add / Edit Member</h1>
+
+          <div class="row">
+            <div>
+              <label for="editSearch" data-i18n="find_label">Find an existing member to edit (leave blank to add someone new)</label>
+              <div class="autocomplete-wrap">
+                <input type="text" id="editSearch" data-i18n-placeholder="find_placeholder" placeholder="Start typing a name...">
+                <div class="autocomplete-list" id="editSearchList"></div>
+              </div>
+              <p class="hint" data-i18n="find_hint">Selecting someone here loads their record below so you can update it.</p>
+            </div>
+            <div>
+              <label style="text-align:center; display:block;" data-i18n="photo_label">Profile photo</label>
+              <div class="avatar-dropzone" id="photoDropzone" tabindex="0" data-i18n-title="photo_dropzone_title" title="Click, drag & drop, or paste (Ctrl+V) a photo">
+                <div class="avatar-circle" id="photoPreview">
+                  <span class="dropzone-placeholder">👤</span>
+                </div>
+                <input type="file" id="PhotoFileInput" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" style="display:none;">
+              </div>
+              <input type="hidden" id="PhotoURL" value="">
+            </div>
+          </div>
+
+          <hr style="margin:28px 0;border:none;border-top:1px solid var(--line);">
+
+          <form id="memberForm">
+            <input type="hidden" id="ID" value="">
+
+            <h3 style="margin-top:0;" data-i18n="names_h3">Names</h3>
+            <p class="hint" data-i18n="names_hint">Fill in whichever languages apply — at least one first or last name is required.</p>
+
+            <div class="row">
+              <div>
+                <label for="EnglishFirstName" data-i18n="english_first">English first name</label>
+                <input type="text" id="EnglishFirstName">
+              </div>
+              <div>
+                <label for="EnglishLastName" data-i18n="english_last">English last name</label>
+                <input type="text" id="EnglishLastName">
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="LaoFirstName" data-i18n="lao_first">Lao first name</label>
+                <input type="text" id="LaoFirstName">
+              </div>
+              <div>
+                <label for="LaoLastName" data-i18n="lao_last">Lao last name</label>
+                <input type="text" id="LaoLastName">
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="HmongFirstName" data-i18n="hmong_first">Hmong first name</label>
+                <input type="text" id="HmongFirstName">
+              </div>
+              <div>
+                <label for="HmongLastName" data-i18n="hmong_last">Hmong last name</label>
+                <input type="text" id="HmongLastName">
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="Gender" data-i18n="gender_label">Gender</label>
+                <select id="Gender">
+                  <option value="" data-i18n="gender_select">-- Select --</option>
+                  <option data-i18n="gender_male">Male</option>
+                  <option data-i18n="gender_female">Female</option>
+                  <option data-i18n="gender_other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="BirthDate" data-i18n="birthdate_label">Birth date</label>
+                <input type="date" id="BirthDate">
+              </div>
+              <div>
+                <label for="DeathDate" data-i18n="deathdate_label">Death date (leave blank if living)</label>
+                <input type="date" id="DeathDate">
+              </div>
+            </div>
+
+            <h3 style="margin-top:28px;" data-i18n="address_h3">Address</h3>
+            <p class="hint" data-i18n="address_hint">Where this person's family home is (optional). Select Country first, then Province, City, and Village — for Laos these are looked up from your address list; other countries can be typed freely.</p>
+
+            <div class="row">
+              <div>
+                <label for="Country" data-i18n="country_label">Country</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="Country" autocomplete="off" data-i18n-placeholder="country_placeholder" placeholder="Search country...">
+                  <div class="autocomplete-list" id="CountryList"></div>
+                </div>
+              </div>
+              <div>
+                <label for="Province" data-i18n="province_label">Province</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="Province" autocomplete="off" placeholder="Select country first" disabled>
+                  <div class="autocomplete-list" id="ProvinceList"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="City" data-i18n="city_label">City</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="City" autocomplete="off" placeholder="Select province first" disabled>
+                  <div class="autocomplete-list" id="CityList"></div>
+                </div>
+              </div>
+              <div>
+                <label for="Village" data-i18n="village_label">Village</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="Village" autocomplete="off" placeholder="Select city first" disabled>
+                  <div class="autocomplete-list" id="VillageList"></div>
+                </div>
+              </div>
+            </div>
+
+            <label for="HouseLocationURL" data-i18n="house_location_label">House location (map link)</label>
+            <input type="url" id="HouseLocationURL" placeholder="https://maps.google.com/...">
+
+            <label style="margin-top:16px;" data-i18n="house_files_label">House photos & documents</label>
+            <div class="dropzone" id="houseDropzone" tabindex="0">
+              <div class="dropzone-gallery" id="houseGallery"></div>
+              <div class="dropzone-text" data-i18n="house_dropzone_text">Drag & drop photos or PDFs, click to browse, or paste (Ctrl+V) an image</div>
+              <input type="file" id="HouseFileInput" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,application/pdf" multiple style="display:none;">
+            </div>
+            <div class="manual-links-box" style="display:none;">
+              <label for="HouseImages" style="margin-top:0;" data-i18n="manual_links_label">Or paste links manually</label>
+              <textarea id="HouseImages" data-i18n-placeholder="manual_links_placeholder" placeholder="One link per line"></textarea>
+              <p class="hint" data-i18n="manual_links_hint">Uploaded files appear here automatically — you can also paste external links directly.</p>
+            </div>
+
+            <h3 style="margin-top:28px;" data-i18n="relationships_h3">Relationships</h3>
+            <p class="hint" data-i18n="relationships_hint">Pick from existing members, or type a new name and choose "Add as new person".</p>
+
+            <div class="row">
+              <div>
+                <label for="FatherSearch" data-i18n="father_label">Father</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="FatherSearch" autocomplete="off" data-i18n-placeholder="relation_placeholder" placeholder="Search or type new name...">
+                  <div class="autocomplete-list" id="FatherList"></div>
+                </div>
+                <input type="hidden" id="FatherID">
+              </div>
+              <div>
+                <label for="MotherSearch" data-i18n="mother_label">Mother</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="MotherSearch" autocomplete="off" data-i18n-placeholder="relation_placeholder" placeholder="Search or type new name...">
+                  <div class="autocomplete-list" id="MotherList"></div>
+                </div>
+                <input type="hidden" id="MotherID">
+              </div>
+            </div>
+
+            <label for="SpouseSearch" data-i18n="spouse_label">Spouse</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="SpouseSearch" autocomplete="off" data-i18n-placeholder="relation_placeholder" placeholder="Search or type new name...">
+              <div class="autocomplete-list" id="SpouseList"></div>
+            </div>
+            <input type="hidden" id="SpouseID">
+
+            <label for="Notes" data-i18n="notes_label">Notes</label>
+            <textarea id="Notes"></textarea>
+
+            <div style="margin-top:28px;">
+              <button type="submit" class="btn" data-i18n="save_btn">💾 Save Member</button>
+              <button type="button" class="btn secondary" onclick="resetForm()" data-i18n="clear_btn">Clear Form</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ================= PANEL: Family Tree ================= -->
+      <section id="panel-tree" class="panel-tree">
+        <div class="tree-toolbar">
+          <strong style="margin-right:auto;">🌲 <span data-i18n="tree_title">Family Tree</span></strong>
+          <div class="autocomplete-wrap" style="max-width:340px; min-width:280px; flex:1;">
+            <input type="text" id="searchBox" autocomplete="off" data-i18n-placeholder="tree_search_placeholder" placeholder="Search a name...">
+            <div class="autocomplete-list" id="searchBoxList"></div>
+          </div>
+          <button class="btn secondary" onclick="expandAll()" data-i18n="expand_all_btn">Expand all</button>
+          <button class="btn secondary" onclick="collapseAll()" data-i18n="collapse_all_btn">Collapse all</button>
+          <button class="btn secondary" onclick="resetZoom()" data-i18n="reset_view_btn">Reset view</button>
+          <button class="btn secondary" onclick="printTree()" data-i18n="print_btn">🖨️ Print</button>
+        </div>
+        <svg id="tree-canvas" style="flex:1;"></svg>
+      </section>
+
+      <!-- ================= PANEL: Guideline ================= -->
+      <section id="panel-guide" class="panel">
+        <div class="container">
+          <h1 data-i18n="guide_h1">📖 Guideline</h1>
+          <p class="hint" data-i18n="guide_intro">Click any question below to show or hide its answer.</p>
+
+          <div class="accordion" id="guideAccordion"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-overlay" id="saveModalOverlay">
+    <div class="modal-box" id="saveModalBox">
+      <div class="modal-spinner" id="saveModalSpinner"></div>
+      <div class="modal-icon" id="saveModalIcon" style="display:none;"></div>
+      <p class="modal-message" id="saveModalMessage">Saving...</p>
+    </div>
+  </div>
+
+  <div class="image-lightbox-overlay" id="imageLightboxOverlay" onclick="closeImageLightbox()">
+    <img id="imageLightboxImg" src="" alt="Photo">
+  </div>
+
+  <script>
+    // =========================================================
+    // Sidebar navigation
+    // =========================================================
+    let treeInitialized = false;
+
+    // =========================================================
+    // Internationalization (English / Lao / Hmong)
+    // =========================================================
+    const I18N = {
+      en: {
+        nav_form: 'Add / Edit Member', nav_tree: 'Family Tree', nav_guide: 'Guideline',
+        tooltip_collapse_branch: 'Click to collapse this branch',
+        tooltip_expand_children: 'Click to expand and show children',
+        tooltip_hide_ancestors: 'Click to hide parents and siblings again',
+        tooltip_show_ancestors: 'Click to reveal parents and siblings',
+        tooltip_edit_name: 'Click to open and edit this person\'s record',
+        tooltip_unfocus: 'Click to show the full tree again',
+        tooltip_focus: 'Click to focus on just this person\'s parents, spouse, and children',
+        tooltip_view_photo: 'Click to view this photo larger',
+        guide_h1: '📖 Guideline', guide_intro: 'Click any question below to show or hide its answer.',
+        guide_q1: 'How do I add a new family member?',
+        guide_a1: 'Go to "Add / Edit Member", leave the search box at the top empty, fill in whatever names you know (at least one first or last name in any language), and click Save Member.',
+        guide_q2: 'How do I edit an existing member?',
+        guide_a2: 'Type their name into "Find an existing member to edit" at the top of the form, select them from the list that appears, update any fields, then click Save Member.',
+        guide_q3: 'How do I add a profile photo or house photos?',
+        guide_a3: 'The person needs to already be saved first (so search for them if they\'re new). Then click, drag a photo onto, or paste (Ctrl+V) an image into the profile circle or the house photos box — it uploads automatically.',
+        guide_q4: 'How does the Country / Province / City / Village address work?',
+        guide_a4: 'Pick Country first. If it\'s Laos, Province, City, and Village become searchable dropdowns pulled from your address list; other countries can be typed freely. Each field only unlocks after the one before it is filled in.',
+        guide_q5: 'How do I read the Family Tree?',
+        guide_a5: 'Each box shows a person\'s name, birth/death years, and gender. Click the name to edit that person. The small "+" at the bottom expands their children; the "+" at the top reveals their parents and siblings together. Hover over any name, button, or box for a moment to see a tooltip explaining exactly what clicking it will do.',
+        guide_q9: 'How do I search for someone in the Family Tree?',
+        guide_a9: 'Type a name into the search box in the tree toolbar. Pick someone from the dropdown (it also shows their birth year, parents, and address, to help tell apart people who share a name) — the tree expands automatically if needed and switches straight to a focused view of just their immediate family.',
+        guide_q10: 'How do I remove a photo or house file I uploaded by mistake?',
+        guide_a10: 'Hover over the photo or file thumbnail and click the small red "×" that appears in its corner. This removes it from the record and sends the file to Drive\'s trash.',
+        guide_q6: 'What happens if I click the box itself (not the name or the +)?',
+        guide_a6: 'It focuses the tree on just that person\'s parents, spouse, and children, rearranged into a compact view — handy for printing. Click the same box again to return to the full tree.',
+        guide_q7: 'How do I print the tree?',
+        guide_a7: 'Click the Print button in the tree toolbar. For a cleaner printout, focus on one family first (click their box) before printing.',
+        guide_q8: 'How do I switch language?',
+        guide_a8: 'Use the EN / ລາວ / Hmoob buttons fixed at the top-right of the page. It switches instantly without losing your place.',
+        form_h1: 'Add / Edit Member',
+        find_label: 'Find an existing member to edit (leave blank to add someone new)',
+        find_placeholder: 'Start typing a name...',
+        find_hint: 'Selecting someone here loads their record below so you can update it.',
+        photo_label: 'Profile photo', photo_dropzone_title: 'Click, drag & drop, or paste (Ctrl+V) a photo',
+        names_h3: 'Names', names_hint: 'Fill in whichever languages apply — at least one first or last name is required.',
+        english_first: 'English first name', english_last: 'English last name',
+        lao_first: 'Lao first name', lao_last: 'Lao last name',
+        hmong_first: 'Hmong first name', hmong_last: 'Hmong last name',
+        gender_label: 'Gender', gender_select: '-- Select --', gender_male: 'Male', gender_female: 'Female', gender_other: 'Other',
+        birthdate_label: 'Birth date', deathdate_label: 'Death date (leave blank if living)',
+        address_h3: 'Address',
+        address_hint: 'Where this person\'s family home is (optional). Select Country first, then Province, City, and Village — for Laos these are looked up from your address list; other countries can be typed freely.',
+        country_label: 'Country', country_placeholder: 'Search country...',
+        province_label: 'Province', province_placeholder_locked: 'Select country first', province_placeholder_open: 'Search or type province...',
+        city_label: 'City', city_placeholder_locked: 'Select province first', city_placeholder_open: 'Search or type city...',
+        village_label: 'Village', village_placeholder_locked: 'Select city first', village_placeholder_open: 'Search or type village...',
+        house_location_label: 'House location (map link)',
+        house_files_label: 'House photos & documents',
+        house_dropzone_text: 'Drag & drop photos or PDFs, click to browse, or paste (Ctrl+V) an image',
+        manual_links_label: 'Or paste links manually', manual_links_placeholder: 'One link per line',
+        manual_links_hint: 'Uploaded files appear here automatically — you can also paste external links directly.',
+        relationships_h3: 'Relationships',
+        relationships_hint: 'Pick from existing members, or type a new name and choose "Add as new person".',
+        father_label: 'Father', mother_label: 'Mother', spouse_label: 'Spouse',
+        relation_placeholder: 'Search or type new name...',
+        notes_label: 'Notes', save_btn: '💾 Save Member', clear_btn: 'Clear Form',
+        tree_title: 'Family Tree', tree_search_placeholder: 'Search a name...',
+        expand_all_btn: 'Expand all', collapse_all_btn: 'Collapse all', reset_view_btn: 'Reset view', print_btn: '🖨️ Print',
+        no_members_msg: 'No members yet — add some from the "Add / Edit Member" page first.',
+        toast_need_name: 'Please enter at least one name (English, Lao, or Hmong).',
+        toast_saving: 'Saving...', toast_saved_new: 'Saved! New member added.', toast_saved_update: 'Saved! Record updated.',
+        toast_error: 'Error: {msg}',
+        toast_not_found: 'Could not find that member\'s record. Try searching again.',
+        toast_loaded: 'Loaded {name} for editing.',
+        toast_error_loading: 'Error loading member: {msg}',
+        toast_error_loading_relation: 'Error loading {relation}: {msg}',
+        toast_could_not_remove_photo: 'Could not remove photo: {msg}', toast_photo_removed: 'Photo removed.',
+        toast_error_removing_photo: 'Error removing photo: {msg}', toast_photo_uploaded: 'Photo uploaded.',
+        toast_all_uploaded: 'All files uploaded.', toast_uploading: 'Uploading {i} of {n}...',
+        toast_upload_failed: 'Upload failed: {msg}', toast_file_removed: 'File removed.',
+        toast_could_not_remove_file: 'Could not remove file: {msg}', toast_error_removing_file: 'Error removing file: {msg}',
+        toast_save_first: 'Save this person first (or search for them), then come back to upload files.',
+        add_new_person: '➕ Add "{name}" as new person',
+        unnamed_member: 'member'
+      },
+      lo: {
+        nav_form: 'ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ', nav_tree: 'ຕົ້ນຄອບຄົວ', nav_guide: 'ຄູ່ມືການນຳໃຊ້',
+        tooltip_collapse_branch: 'ກົດເພື່ອຫຍໍ້ສາຂານີ້',
+        tooltip_expand_children: 'ກົດເພື່ອຂະຫຍາຍ ແລະ ສະແດງລູກ',
+        tooltip_hide_ancestors: 'ກົດເພື່ອເຊື່ອງພໍ່ແມ່ ແລະ ອ້າຍນ້ອງອີກຄັ້ງ',
+        tooltip_show_ancestors: 'ກົດເພື່ອສະແດງພໍ່ແມ່ ແລະ ອ້າຍນ້ອງ',
+        tooltip_edit_name: 'ກົດເພື່ອເປີດ ແລະ ແກ້ໄຂຂໍ້ມູນຄົນນີ້',
+        tooltip_unfocus: 'ກົດເພື່ອສະແດງຕົ້ນໄມ້ທັງໝົດອີກຄັ້ງ',
+        tooltip_focus: 'ກົດເພື່ອສະແດງສະເພາະພໍ່ແມ່, ຄູ່ສົມລົດ, ແລະ ລູກຂອງຄົນນີ້',
+        tooltip_view_photo: 'ກົດເພື່ອເບິ່ງຮູບນີ້ໃຫ້ໃຫຍ່ຂຶ້ນ',
+        guide_h1: '📖 ຄູ່ມືການນຳໃຊ້', guide_intro: 'ກົດຄຳຖາມລຸ່ມນີ້ເພື່ອສະແດງ ຫຼື ເຊື່ອງຄຳຕອບ.',
+        guide_q1: 'ຂ້ອຍຈະເພີ່ມສະມາຊິກໃໝ່ແນວໃດ?',
+        guide_a1: 'ໄປທີ່ "ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ", ປະຊ່ອງຄົ້ນຫາໄວ້ຫວ່າງ, ໃສ່ຊື່ທີ່ທ່ານຮູ້ (ຢ່າງໜ້ອຍໜຶ່ງຊື່ພາສາໃດກໍ່ໄດ້), ແລ້ວກົດບັນທຶກສະມາຊິກ.',
+        guide_q2: 'ຂ້ອຍຈະແກ້ໄຂສະມາຊິກທີ່ມີຢູ່ແລ້ວແນວໃດ?',
+        guide_a2: 'ພິມຊື່ໃສ່ຊ່ອງ "ຄົ້ນຫາສະມາຊິກທີ່ມີຢູ່ແລ້ວເພື່ອແກ້ໄຂ" ຢູ່ເທິງສຸດ, ເລືອກຄົນຈາກລາຍການທີ່ປາກົດຂຶ້ນ, ແກ້ໄຂຂໍ້ມູນຕາມຕ້ອງການ, ແລ້ວກົດບັນທຶກສະມາຊິກ.',
+        guide_q3: 'ຂ້ອຍຈະເພີ່ມຮູບໂປຣໄຟລ໌ ຫຼື ຮູບເຮືອນແນວໃດ?',
+        guide_a3: 'ຕ້ອງບັນທຶກຄົນນັ້ນກ່ອນ (ຄົ້ນຫາລາວຖ້າເປັນຄົນໃໝ່). ຈາກນັ້ນກົດ, ລາກຮູບໃສ່, ຫຼືວາງ (Ctrl+V) ຮູບພາບໃສ່ວົງມົນໂປຣໄຟລ໌ ຫຼື ຊ່ອງຮູບເຮືອນ — ມັນຈະອັບໂຫລດອັດຕະໂນມັດ.',
+        guide_q4: 'ຊ່ອງທີ່ຢູ່ ປະເທດ / ແຂວງ / ເມືອງ / ບ້ານ ເຮັດວຽກແນວໃດ?',
+        guide_a4: 'ເລືອກປະເທດກ່ອນ. ຖ້າເປັນລາວ, ແຂວງ, ເມືອງ, ແລະ ບ້ານ ຈະກາຍເປັນລາຍການໃຫ້ຄົ້ນຫາຈາກຂໍ້ມູນທີ່ຢູ່ຂອງທ່ານ; ປະເທດອື່ນສາມາດພິມເອງໄດ້. ແຕ່ລະຊ່ອງຈະເປີດໃຊ້ໄດ້ພຽງແຕ່ຫຼັງຈາກຊ່ອງກ່ອນໜ້າຖືກໃສ່ຂໍ້ມູນແລ້ວ.',
+        guide_q5: 'ຂ້ອຍຈະອ່ານຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a5: 'ແຕ່ລະກ່ອງສະແດງຊື່, ປີເກີດ/ປີເສຍຊີວິດ, ແລະ ເພດ. ກົດຊື່ເພື່ອແກ້ໄຂຄົນນັ້ນ. ເຄື່ອງໝາຍ "+" ນ້ອຍລຸ່ມສຸດຂະຫຍາຍລູກ; "+" ເທິງສຸດສະແດງພໍ່ແມ່ ແລະ ອ້າຍນ້ອງພ້ອມກັນ. ວາງເມົາສ໌ໄວ້ເທິງຊື່, ປຸ່ມ, ຫຼື ກ່ອງໃດໜຶ່ງບຶດໜຶ່ງເພື່ອເບິ່ງຄຳອະທິບາຍວ່າກົດແລ້ວຈະເກີດຫຍັງຂຶ້ນ.',
+        guide_q9: 'ຂ້ອຍຈະຄົ້ນຫາຄົນໃນຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a9: 'ພິມຊື່ໃສ່ຊ່ອງຄົ້ນຫາຢູ່ແຖບເຄື່ອງມືຂອງຕົ້ນໄມ້. ເລືອກຄົນຈາກລາຍການທີ່ປາກົດຂຶ້ນ (ຍັງສະແດງປີເກີດ, ພໍ່ແມ່, ແລະ ທີ່ຢູ່ ເພື່ອຊ່ວຍແຍກແຍະຄົນທີ່ມີຊື່ຄືກັນ) — ຕົ້ນໄມ້ຈະຂະຫຍາຍອັດຕະໂນມັດຖ້າຈຳເປັນ ແລະ ສະຫຼັບໄປສະແດງສະເພາະຄອບຄົວໃກ້ຊິດຂອງຄົນນັ້ນທັນທີ.',
+        guide_q10: 'ຂ້ອຍຈະລຶບຮູບ ຫຼື ໄຟລ໌ເຮືອນທີ່ອັບໂຫລດຜິດແນວໃດ?',
+        guide_a10: 'ວາງເມົາສ໌ໄວ້ເທິງຮູບຕົວຢ່າງ ຫຼື ໄຟລ໌ນັ້ນ ແລ້ວກົດເຄື່ອງໝາຍ "×" ສີແດງນ້ອຍທີ່ປາກົດຢູ່ມຸມຂອງມັນ. ນີ້ຈະລຶບມັນອອກຈາກຂໍ້ມູນ ແລະ ສົ່ງໄຟລ໌ໄປຖັງຂີ້ເຫຍື້ອຂອງ Drive.',
+        guide_q6: 'ຈະເກີດຫຍັງຂຶ້ນຖ້າກົດໃສ່ໂຕກ່ອງເອງ (ບໍ່ແມ່ນຊື່ ຫຼື "+")?',
+        guide_a6: 'ມັນຈະສະແດງສະເພາະພໍ່ແມ່, ຄູ່ສົມລົດ, ແລະ ລູກຂອງຄົນນັ້ນ, ຈັດແຈງເປັນມຸມມອງກະທັດຮັດ — ເໝາະສຳລັບພິມ. ກົດໂຕກ່ອງດຽວກັນອີກຄັ້ງເພື່ອກັບຄືນສູ່ຕົ້ນໄມ້ທັງໝົດ.',
+        guide_q7: 'ຂ້ອຍຈະພິມຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a7: 'ກົດປຸ່ມພິມຢູ່ແຖບເຄື່ອງມືຂອງຕົ້ນໄມ້. ເພື່ອໃຫ້ພິມອອກມາສວຍງາມກວ່າ, ໃຫ້ໂຟກັດໃສ່ຄອບຄົວດຽວກ່ອນ (ກົດໂຕກ່ອງຂອງເຂົາ) ກ່ອນພິມ.',
+        guide_q8: 'ຂ້ອຍຈະປ່ຽນພາສາແນວໃດ?',
+        guide_a8: 'ໃຊ້ປຸ່ມ EN / ລາວ / Hmoob ທີ່ຄ້າງຢູ່ມຸມເທິງຂວາຂອງໜ້າ. ມັນປ່ຽນທັນທີໂດຍບໍ່ເສຍຕຳແໜ່ງທີ່ທ່ານກຳລັງເບິ່ງຢູ່.',
+        form_h1: 'ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ',
+        find_label: 'ຄົ້ນຫາສະມາຊິກທີ່ມີຢູ່ແລ້ວເພື່ອແກ້ໄຂ (ປະໄວ້ຫວ່າງເພື່ອເພີ່ມຄົນໃໝ່)',
+        find_placeholder: 'ພິມຊື່ເພື່ອຄົ້ນຫາ...',
+        find_hint: 'ເລືອກຄົນຢູ່ບ່ອນນີ້ຈະໂຫຼດຂໍ້ມູນຂອງເຂົາລົງມາລຸ່ມເພື່ອໃຫ້ທ່ານແກ້ໄຂໄດ້.',
+        photo_label: 'ຮູບໂປຣໄຟລ໌', photo_dropzone_title: 'ກົດ, ລາກວາງ, ຫຼືວາງ (Ctrl+V) ຮູບພາບ',
+        names_h3: 'ຊື່', names_hint: 'ໃສ່ຊື່ພາສາໃດກໍ່ໄດ້ທີ່ກ່ຽວຂ້ອງ — ຕ້ອງມີຢ່າງໜ້ອຍໜຶ່ງຊື່ ຫຼື ນາມສະກຸນ.',
+        english_first: 'ຊື່ (ອັງກິດ)', english_last: 'ນາມສະກຸນ (ອັງກິດ)',
+        lao_first: 'ຊື່ (ລາວ)', lao_last: 'ນາມສະກຸນ (ລາວ)',
+        hmong_first: 'ຊື່ (ມົ້ງ)', hmong_last: 'ນາມສະກຸນ (ມົ້ງ)',
+        gender_label: 'ເພດ', gender_select: '-- ເລືອກ --', gender_male: 'ຊາຍ', gender_female: 'ຍິງ', gender_other: 'ອື່ນໆ',
+        birthdate_label: 'ວັນເກີດ', deathdate_label: 'ວັນເສຍຊີວິດ (ປະໄວ້ຫວ່າງຖ້າຍັງມີຊີວິດຢູ່)',
+        address_h3: 'ທີ່ຢູ່',
+        address_hint: 'ບ້ານເຮືອນຄອບຄົວຂອງຄົນນີ້ (ບໍ່ບັງຄັບ). ເລືອກປະເທດກ່ອນ, ແລ້ວແຂວງ, ເມືອງ, ແລະ ບ້ານ — ສຳລັບປະເທດລາວຈະຄົ້ນຫາຈາກຂໍ້ມູນທີ່ທ່ານມີ; ປະເທດອື່ນສາມາດພິມເອງໄດ້.',
+        country_label: 'ປະເທດ', country_placeholder: 'ຄົ້ນຫາປະເທດ...',
+        province_label: 'ແຂວງ', province_placeholder_locked: 'ເລືອກປະເທດກ່ອນ', province_placeholder_open: 'ຄົ້ນຫາ ຫຼື ພິມແຂວງ...',
+        city_label: 'ເມືອງ', city_placeholder_locked: 'ເລືອກແຂວງກ່ອນ', city_placeholder_open: 'ຄົ້ນຫາ ຫຼື ພິມເມືອງ...',
+        village_label: 'ບ້ານ', village_placeholder_locked: 'ເລືອກເມືອງກ່ອນ', village_placeholder_open: 'ຄົ້ນຫາ ຫຼື ພິມບ້ານ...',
+        house_location_label: 'ທີ່ຕັ້ງເຮືອນ (ລິ້ງແຜນທີ່)',
+        house_files_label: 'ຮູບພາບ ແລະ ເອກະສານຂອງເຮືອນ',
+        house_dropzone_text: 'ລາກວາງຮູບພາບ ຫຼື PDF, ກົດເພື່ອເລືອກ, ຫຼືວາງ (Ctrl+V) ຮູບພາບ',
+        manual_links_label: 'ຫຼືວາງລິ້ງເອງ', manual_links_placeholder: 'ໜຶ່ງລິ້ງຕໍ່ໜຶ່ງແຖວ',
+        manual_links_hint: 'ໄຟລ໌ທີ່ອັບໂຫລດຈະປາກົດຢູ່ບ່ອນນີ້ໂດຍອັດຕະໂນມັດ — ທ່ານສາມາດວາງລິ້ງພາຍນອກເອງໄດ້ຄືກັນ.',
+        relationships_h3: 'ຄວາມສຳພັນ',
+        relationships_hint: 'ເລືອກຈາກສະມາຊິກທີ່ມີຢູ່ແລ້ວ, ຫຼືພິມຊື່ໃໝ່ແລ້ວເລືອກ "ເພີ່ມເປັນຄົນໃໝ່".',
+        father_label: 'ພໍ່', mother_label: 'ແມ່', spouse_label: 'ຄູ່ສົມລົດ',
+        relation_placeholder: 'ຄົ້ນຫາ ຫຼື ພິມຊື່ໃໝ່...',
+        notes_label: 'ບັນທຶກ', save_btn: '💾 ບັນທຶກສະມາຊິກ', clear_btn: 'ລ້າງແບບຟອມ',
+        tree_title: 'ຕົ້ນຄອບຄົວ', tree_search_placeholder: 'ຄົ້ນຫາຊື່...',
+        expand_all_btn: 'ຂະຫຍາຍທັງໝົດ', collapse_all_btn: 'ຫຍໍ້ທັງໝົດ', reset_view_btn: 'ຣີເຊັດມຸມມອງ', print_btn: '🖨️ ພິມ',
+        no_members_msg: 'ຍັງບໍ່ມີສະມາຊິກເທື່ອ — ເພີ່ມຈາກໜ້າ "ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ" ກ່ອນ.',
+        toast_need_name: 'ກະລຸນາໃສ່ຊື່ຢ່າງໜ້ອຍໜຶ່ງພາສາ (ອັງກິດ, ລາວ, ຫຼື ມົ້ງ).',
+        toast_saving: 'ກຳລັງບັນທຶກ...', toast_saved_new: 'ບັນທຶກແລ້ວ! ເພີ່ມສະມາຊິກໃໝ່ສຳເລັດ.', toast_saved_update: 'ບັນທຶກແລ້ວ! ອັບເດດຂໍ້ມູນສຳເລັດ.',
+        toast_error: 'ຜິດພາດ: {msg}',
+        toast_not_found: 'ບໍ່ພົບຂໍ້ມູນສະມາຊິກ. ກະລຸນາຄົ້ນຫາໃໝ່ອີກຄັ້ງ.',
+        toast_loaded: 'ໂຫຼດຂໍ້ມູນຂອງ {name} ເພື່ອແກ້ໄຂແລ້ວ.',
+        toast_error_loading: 'ຜິດພາດໃນການໂຫຼດຂໍ້ມູນ: {msg}',
+        toast_error_loading_relation: 'ຜິດພາດໃນການໂຫຼດ {relation}: {msg}',
+        toast_could_not_remove_photo: 'ບໍ່ສາມາດລຶບຮູບໄດ້: {msg}', toast_photo_removed: 'ລຶບຮູບແລ້ວ.',
+        toast_error_removing_photo: 'ຜິດພາດໃນການລຶບຮູບ: {msg}', toast_photo_uploaded: 'ອັບໂຫລດຮູບສຳເລັດ.',
+        toast_all_uploaded: 'ອັບໂຫລດໄຟລ໌ທັງໝົດສຳເລັດ.', toast_uploading: 'ກຳລັງອັບໂຫລດ {i} ຈາກ {n}...',
+        toast_upload_failed: 'ອັບໂຫລດບໍ່ສຳເລັດ: {msg}', toast_file_removed: 'ລຶບໄຟລ໌ແລ້ວ.',
+        toast_could_not_remove_file: 'ບໍ່ສາມາດລຶບໄຟລ໌ໄດ້: {msg}', toast_error_removing_file: 'ຜິດພາດໃນການລຶບໄຟລ໌: {msg}',
+        toast_save_first: 'ກະລຸນາບັນທຶກຄົນນີ້ກ່ອນ (ຫຼືຄົ້ນຫາຖ້າບັນທຶກແລ້ວ), ແລ້ວກັບມາອັບໂຫລດໄຟລ໌ພາຍຫຼັງ.',
+        add_new_person: '➕ ເພີ່ມ "{name}" ເປັນຄົນໃໝ່',
+        unnamed_member: 'ສະມາຊິກ'
+      },
+      hmn: {
+        nav_form: 'Ntxiv / Kho Tswv Cuab', nav_tree: 'Tsob Ntoo Tsev Neeg', nav_guide: 'Lus Qhia Siv',
+        tooltip_collapse_branch: 'Nyem kom zais cov ceg no',
+        tooltip_expand_children: 'Nyem kom nthuav thiab qhia cov menyuam',
+        tooltip_hide_ancestors: 'Nyem kom zais niam txiv thiab cov kwvtij dua',
+        tooltip_show_ancestors: 'Nyem kom qhia niam txiv thiab cov kwvtij',
+        tooltip_edit_name: 'Nyem kom qhib thiab kho tus neeg no cov ntaub ntawv',
+        tooltip_unfocus: 'Nyem kom rov qhia tag nrho tsob ntoo',
+        tooltip_focus: 'Nyem kom saib tsuas yog tus neeg no cov niam txiv, poj/txiv, thiab menyuam xwb',
+        tooltip_view_photo: 'Nyem kom saib daim duab no loj dua',
+        guide_h1: '📖 Lus Qhia Siv', guide_intro: 'Nyem rau ib nqe lus nug hauv qab no kom qhia lossis zais nws cov lus teb.',
+        guide_q1: 'Kuv yuav ntxiv ib tug tswv cuab tshiab li cas?',
+        guide_a1: 'Mus rau "Ntxiv / Kho Tswv Cuab", tso lub qhov nrhiav saum toj no cia dawb, sau cov npe uas koj paub (yuav tsum muaj tsawg kawg ib lub npe lossis nplooj npe ntawm ib hom lus), thiab nyem Khaws Cia Tus Tswv Cuab.',
+        guide_q2: 'Kuv yuav kho ib tug tswv cuab uas twb muaj lawm li cas?',
+        guide_a2: 'Ntaus nws lub npe rau hauv "Nrhiav ib tug tswv cuab uas twb muaj lawm los kho" saum toj ntawm daim ntawv, xaiv nws ntawm cov npe tshwm sim, kho cov ntaub ntawv raws li koj xav tau, ces nyem Khaws Cia Tus Tswv Cuab.',
+        guide_q3: 'Kuv yuav ntxiv ib daim duab profile lossis duab tsev li cas?',
+        guide_a3: 'Tus neeg ntawd yuav tsum khaws cia ua ntej (nrhiav nws yog tseem tshiab). Ces nyem, rub ib daim duab los tso, lossis luam (Ctrl+V) ib daim duab rau hauv lub voj profile lossis qhov duab tsev — nws yuav upload nws tus kheej.',
+        guide_q4: 'Chaw Nyob Teb Chaws / Xeev / Nroog / Zos ua hauj lwm li cas?',
+        guide_a4: 'Xaiv Teb Chaws ua ntej. Yog Los, Xeev, Nroog, thiab Zos yuav dhau los ua cov npe nrhiav tau ntawm koj cov ntaub ntawv chaw nyob; lwm lub tebchaws sau tau ncaj qha. Txhua qhov yuav qhib tau tom qab qhov ua ntej sau tas lawm xwb.',
+        guide_q5: 'Kuv yuav nyeem Tsob Ntoo Tsev Neeg li cas?',
+        guide_a5: 'Txhua lub thawv qhia tus neeg lub npe, xyoo yug/tuag, thiab poj txiv. Nyem lub npe kom kho tus neeg ntawd. Lub "+" me me hauv qab nthuav nws cov menyuam; lub "+" saum toj qhia nws niam txiv thiab cov kwvtij ua ke. Ntsiag ntsiag tso koj lub cursor rau saum ib lub npe, pob, lossis thawv twg kom pom cov lus qhia hais tias nyem yuav ua li cas.',
+        guide_q9: 'Kuv yuav nrhiav ib tug neeg hauv Tsob Ntoo Tsev Neeg li cas?',
+        guide_a9: 'Ntaus ib lub npe rau hauv qhov nrhiav ntawm tsob ntoo cov cuab yeej. Xaiv ib tug neeg ntawm cov npe tshwm sim (nws tseem qhia lawv xyoo yug, niam txiv, thiab chaw nyob, kom pab txheeb seb leej twg thaum ob tug muaj tib lub npe) — tsob ntoo yuav nthuav nws tus kheej yog xav tau thiab hloov mus rau ib qhov pom tsuas yog tus neeg ntawd tsev neeg ze tam sim ntawd.',
+        guide_q10: 'Kuv yuav rho ib daim duab lossis ntaub ntawv tsev uas upload yuam kev li cas?',
+        guide_a10: 'Ntsiag ntsiag tso koj lub cursor rau saum daim duab me me lossis ntaub ntawv ntawd thiab nyem lub "×" liab me me uas tshwm sim ntawm nws sab ceg. Qhov no yuav rho nws tawm ntawm cov ntaub ntawv thiab xa cov ntaub ntawv mus rau Drive lub thoob khib nyiab.',
+        guide_q6: 'Yuav muaj dab tsi yog nyem rau lub thawv nws tus kheej (tsis yog lub npe lossis "+")?',
+        guide_a6: 'Nws yuav tsom rau tsuas yog tus neeg ntawd cov niam txiv, poj/txiv, thiab menyuam xwb, npaj ua ib qho pom tau me me — zoo rau luam ntawv. Nyem tib lub thawv ntawd dua kom rov qab mus rau tag nrho tsob ntoo.',
+        guide_q7: 'Kuv yuav luam tsob ntoo li cas?',
+        guide_a7: 'Nyem lub pob Luam Ntawv hauv tsob ntoo cov cuab yeej. Kom tau ib daim ntawv luam zoo dua, tsom rau ib tsev neeg ua ntej (nyem lawv lub thawv) ua ntej luam.',
+        guide_q8: 'Kuv yuav hloov hom lus li cas?',
+        guide_a8: 'Siv cov pob EN / ລາວ / Hmoob nyob ntawm sab xis saum toj ntawm nplooj ntawv. Nws hloov tam sim ntawd tsis poob koj qhov chaw saib.',
+        form_h1: 'Ntxiv / Kho Tswv Cuab',
+        find_label: 'Nrhiav ib tug tswv cuab uas twb muaj lawm los kho (tso cia dawb yog xav ntxiv tus tshiab)',
+        find_placeholder: 'Pib ntaus lub npe...',
+        find_hint: 'Xaiv ib tug neeg ntawm no yuav rub nws cov ntaub ntawv los rau hauv qab kom koj kho tau.',
+        photo_label: 'Duab Profile', photo_dropzone_title: 'Nyem, rub thiab tso, lossis luam (Ctrl+V) ib daim duab',
+        names_h3: 'Npe', names_hint: 'Sau txhua yam lus uas siv tau — yuav tsum muaj tsawg kawg ib lub npe lossis nplooj npe.',
+        english_first: 'Npe (Askiv)', english_last: 'Nplooj npe (Askiv)',
+        lao_first: 'Npe (Los)', lao_last: 'Nplooj npe (Los)',
+        hmong_first: 'Npe (Hmoob)', hmong_last: 'Nplooj npe (Hmoob)',
+        gender_label: 'Poj Txiv', gender_select: '-- Xaiv --', gender_male: 'Txiv Neej', gender_female: 'Poj Niam', gender_other: 'Lwm Yam',
+        birthdate_label: 'Hnub Yug', deathdate_label: 'Hnub Tuag (tso cia dawb yog tseem muaj sia nyob)',
+        address_h3: 'Chaw Nyob',
+        address_hint: 'Tsev neeg tus neeg no nyob qhov twg (tsis tas yuav muaj). Xaiv Teb Chaws ua ntej, tom qab ntawd Xeev, Nroog, thiab Zos — rau tebchaws Los yuav nrhiav tau ntawm koj cov ntaub ntawv chaw nyob; lwm lub tebchaws sau tau ncaj qha.',
+        country_label: 'Teb Chaws', country_placeholder: 'Nrhiav lub teb chaws...',
+        province_label: 'Xeev', province_placeholder_locked: 'Xaiv lub teb chaws ua ntej', province_placeholder_open: 'Nrhiav lossis sau lub xeev...',
+        city_label: 'Nroog', city_placeholder_locked: 'Xaiv lub xeev ua ntej', city_placeholder_open: 'Nrhiav lossis sau lub nroog...',
+        village_label: 'Zos', village_placeholder_locked: 'Xaiv lub nroog ua ntej', village_placeholder_open: 'Nrhiav lossis sau lub zos...',
+        house_location_label: 'Chaw Nyob Tsev (Google Maps Link)',
+        house_files_label: 'Duab thiab Ntaub Ntawv Tsev',
+        house_dropzone_text: 'Rub thiab tso duab lossis PDF, nyem xaiv, lossis luam (Ctrl+V) ib daim duab',
+        manual_links_label: 'Lossis luam link ncaj qha', manual_links_placeholder: 'Ib lub link rau ib kab',
+        manual_links_hint: 'Cov ntaub ntawv uas upload lawm yuav tshwm sim ntawm no ntawm nws tus kheej — koj tseem sau tau lwm cov link ncaj qha thiab.',
+        relationships_h3: 'Kev Sib Raug Zoo',
+        relationships_hint: 'Xaiv ntawm cov tswv cuab uas twb muaj lawm, lossis sau ib lub npe tshiab thiab xaiv "Ntxiv ua tus neeg tshiab".',
+        father_label: 'Txiv', mother_label: 'Niam', spouse_label: 'Nkauj Nraug / Nraug Nkauj',
+        relation_placeholder: 'Nrhiav lossis sau lub npe tshiab...',
+        notes_label: 'Sau Ntxiv', save_btn: '💾 Khaws Cia Tus Tswv Cuab', clear_btn: 'Ntxuav Daim Ntawv',
+        tree_title: 'Tsob Ntoo Tsev Neeg', tree_search_placeholder: 'Nrhiav lub npe...',
+        expand_all_btn: 'Nthuav Tag Nrho', collapse_all_btn: 'Zais Tag Nrho', reset_view_btn: 'Rov Qab Saib', print_btn: '🖨️ Luam Ntawv',
+        no_members_msg: 'Tseem tsis tau muaj tswv cuab — thov ntxiv ntawm nplooj "Ntxiv / Kho Tswv Cuab" ua ntej.',
+        toast_need_name: 'Thov sau tsawg kawg ib lub npe (Askiv, Los, lossis Hmoob).',
+        toast_saving: 'Tab tom khaws cia...', toast_saved_new: 'Khaws cia lawm! Ntxiv tau tus tswv cuab tshiab.', toast_saved_update: 'Khaws cia lawm! Hloov tau cov ntaub ntawv.',
+        toast_error: 'Qhov yuam kev: {msg}',
+        toast_not_found: 'Nrhiav tsis tau cov ntaub ntawv ntawd. Thov rov nrhiav dua.',
+        toast_loaded: 'Rub tau {name} los kho lawm.',
+        toast_error_loading: 'Qhov yuam kev rub ntaub ntawv: {msg}',
+        toast_error_loading_relation: 'Qhov yuam kev rub {relation}: {msg}',
+        toast_could_not_remove_photo: 'Rho tsis tau daim duab: {msg}', toast_photo_removed: 'Rho tau daim duab lawm.',
+        toast_error_removing_photo: 'Qhov yuam kev rho duab: {msg}', toast_photo_uploaded: 'Upload tau daim duab lawm.',
+        toast_all_uploaded: 'Upload tag nrho cov ntaub ntawv lawm.', toast_uploading: 'Tab tom upload {i} ntawm {n}...',
+        toast_upload_failed: 'Upload tsis tau: {msg}', toast_file_removed: 'Rho tau cov ntaub ntawv lawm.',
+        toast_could_not_remove_file: 'Rho tsis tau cov ntaub ntawv: {msg}', toast_error_removing_file: 'Qhov yuam kev rho ntaub ntawv: {msg}',
+        toast_save_first: 'Thov khaws cia tus neeg no ua ntej (lossis nrhiav nws yog twb khaws lawm), ces rov qab los upload ntaub ntawv.',
+        add_new_person: '➕ Ntxiv "{name}" ua tus neeg tshiab',
+        unnamed_member: 'tus tswv cuab'
+      }
+    };
+
+    let currentLang = 'en';
+
+    /** Translates key for the current language, falling back to English, then the key itself. */
+    function t(key, params) {
+      let str = (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+      if (params) {
+        Object.keys(params).forEach(p => { str = str.replace('{' + p + '}', params[p]); });
+      }
+      return str;
+    }
+
+    function applyStaticTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+      });
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        el.title = t(el.getAttribute('data-i18n-title'));
+      });
+      // Re-apply the address field placeholders, which depend on lock state rather than a fixed key.
+      if (typeof updateAddressFieldStates === 'function') updateAddressFieldStates();
+      // Re-render any already-visible dynamic content that has translatable text baked in.
+      const canvasMsg = document.querySelector('#panel-tree .no-members-msg');
+      if (canvasMsg) canvasMsg.textContent = t('no_members_msg');
+    }
+
+    /** Refreshes every hover-tooltip's wording to match the current language and current expand state. */
+    function refreshNodeTooltips(sel) {
+      sel.select('.toggle-title')
+        .text(d => d.children ? t('tooltip_collapse_branch') : t('tooltip_expand_children'));
+      sel.select('.toggle-label-title')
+        .text(d => d.children ? t('tooltip_collapse_branch') : t('tooltip_expand_children'));
+      sel.select('.toggle-up-title')
+        .text(d => upExpanded.has(d.data.ID) ? t('tooltip_hide_ancestors') : t('tooltip_show_ancestors'));
+      sel.select('.toggle-up-label-title')
+        .text(d => upExpanded.has(d.data.ID) ? t('tooltip_hide_ancestors') : t('tooltip_show_ancestors'));
+      sel.select('.node-name-link title')
+        .text(t('tooltip_edit_name'));
+      sel.select('rect title')
+        .text(d => focusedId === d.data.ID ? t('tooltip_unfocus') : t('tooltip_focus'));
+      sel.select('.avatar-thumb title')
+        .text(t('tooltip_view_photo'));
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.body.classList.toggle('lang-lo', lang === 'lo');
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      applyStaticTranslations();
+      if (typeof gZoom !== 'undefined' && gZoom) {
+        refreshNodeTooltips(gZoom.selectAll('g.node'));
+      }
+      renderGuideAccordion();
+    }
+
+    function showPanel(name) {
+      document.getElementById('panel-form').classList.toggle('active', name === 'form');
+      document.getElementById('panel-tree').classList.toggle('active', name === 'tree');
+      document.getElementById('panel-guide').classList.toggle('active', name === 'guide');
+      document.getElementById('navForm').classList.toggle('active', name === 'form');
+      document.getElementById('navTree').classList.toggle('active', name === 'tree');
+      document.getElementById('navGuide').classList.toggle('active', name === 'guide');
+
+      if (name === 'tree' && !treeInitialized) {
+        treeInitialized = true;
+        google.script.run.withSuccessHandler(initTree).getFamilyData();
+      } else if (name === 'tree' && svg) {
+        const size = getCanvasSize();
+        svg.attr('width', size.width).attr('height', size.height);
+      }
+    }
+
+    // =========================================================
+    // Add / Edit Member — autocomplete + save logic
+    // =========================================================
+    function wireAutocomplete(searchInputId, listId, hiddenIdInputId, allowNew) {
+      const input = document.getElementById(searchInputId);
+      const list = document.getElementById(listId);
+      const hidden = document.getElementById(hiddenIdInputId);
+      let debounceTimer;
+
+      input.addEventListener('input', () => {
+        hidden.value = '';
+        clearTimeout(debounceTimer);
+        const q = input.value.trim();
+        debounceTimer = setTimeout(() => {
+          google.script.run.withSuccessHandler(results => {
+            renderList(results);
+          }).searchMembers(q);
+        }, 200);
+      });
+
+      function renderList(results) {
+        list.innerHTML = '';
+        if (input.value.trim() && allowNew) {
+          const newOpt = document.createElement('div');
+          newOpt.style.color = 'var(--accent)';
+          newOpt.textContent = t('add_new_person', { name: input.value.trim() });
+          newOpt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            hidden.value = '';
+            hidden.dataset.newName = input.value.trim();
+            list.style.display = 'none';
+          });
+          list.appendChild(newOpt);
+        }
+        results.forEach(r => {
+          const opt = document.createElement('div');
+          opt.className = 'editsearch-option';
+          opt.innerHTML = memberOptionMarkup_(r);
+
+          // mousedown (not click) fires before the input can blur, avoiding a
+          // class of "the dropdown closed before my click registered" bugs.
+          opt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            input.value = r.name;
+            hidden.value = r.id;
+            delete hidden.dataset.newName;
+            list.style.display = 'none';
+          });
+          list.appendChild(opt);
+        });
+        list.style.display = (results.length || (input.value.trim() && allowNew)) ? 'block' : 'none';
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!list.contains(e.target) && e.target !== input) list.style.display = 'none';
+      });
+    }
+
+    wireAutocomplete('FatherSearch', 'FatherList', 'FatherID', true);
+    wireAutocomplete('MotherSearch', 'MotherList', 'MotherID', true);
+    /** Your Laos address data stores combined "English - Lao [- code]" text — take just the first (English) part. */
+    function englishPart_(str) {
+      if (!str) return '';
+      return str.split(' - ')[0].trim();
+    }
+
+    /** Builds the shared "name + birth/parents + address" preview markup used in every member-picker dropdown. */
+    function memberOptionMarkup_(r) {
+      const detailParts = [];
+      if (r.birthYear) detailParts.push('b. ' + r.birthYear);
+      const parents = [r.fatherName, r.motherName].filter(Boolean).join(' & ');
+      if (parents) detailParts.push('Parents: ' + parents);
+
+      const addressParts = [r.country, englishPart_(r.province), englishPart_(r.city), englishPart_(r.village)]
+        .filter(Boolean).join(', ');
+
+      return `<div class="editsearch-name">${r.name}</div>` +
+        (detailParts.length ? `<div class="editsearch-detail">${detailParts.join(' · ')}</div>` : '') +
+        (addressParts ? `<div class="editsearch-detail">${addressParts}</div>` : '');
+    }
+
+    wireAutocomplete('SpouseSearch', 'SpouseList', 'SpouseID', true);
+
+    // =========================================================
+    // Address — Country/Province/City/Village cascading dropdowns
+    // =========================================================
+    const WORLD_COUNTRIES = ['Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo (Congo-Brazzaville)','Costa Rica','Croatia','Cuba','Cyprus','Czechia','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kosovo','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'];
+
+    // Best-effort Lao names for every country in the list above, shown instead of
+    // running place names through machine translation. Worth a native-speaker
+    // spot-check, especially for less commonly referenced countries.
+    const WORLD_COUNTRIES_LO = {
+      'Afghanistan':'ອັຟການິສຖານ','Albania':'ອານບາເນຍ','Algeria':'ແອວຈີເລຍ','Andorra':'ອານດໍຣາ','Angola':'ອັງໂກລາ',
+      'Antigua and Barbuda':'ແອນທິກົວ ແລະ ບາບູດາ','Argentina':'ອາເຈນຕິນາ','Armenia':'ອາເມເນຍ','Australia':'ອົດສະຕຣາລີ','Austria':'ອອສເຕຣຍ',
+      'Azerbaijan':'ອາເຊີໄບຈານ','Bahamas':'ບາຮາມາ','Bahrain':'ບາເຣນ','Bangladesh':'ບັງກະລາເທດ','Barbados':'ບາບາໂດສ',
+      'Belarus':'ເບລາຣຸດ','Belgium':'ແບນຊິກ','Belize':'ເບລີຊ','Benin':'ແບນິນ','Bhutan':'ພູຖານ',
+      'Bolivia':'ໂບລິເວຍ','Bosnia and Herzegovina':'ບອສເນຍ ແລະ ເຮີເຊໂກວີນາ','Botswana':'ບອດສວານາ','Brazil':'ບຣາຊິນ','Brunei':'ບຣູໄນ',
+      'Bulgaria':'ບຸນກາເຣຍ','Burkina Faso':'ເບີກິນາຟາໂຊ','Burundi':'ບູຣຸນດີ','Cabo Verde':'ກາໂບແວກເດ','Cambodia':'ກຳປູເຈຍ',
+      'Cameroon':'ກາເມຣູນ','Canada':'ການາດາ','Central African Republic':'ສາທາລະນະລັດອາຟຣິກາກາງ','Chad':'ຊາດ','Chile':'ຊິລີ',
+      'China':'ຈີນ','Colombia':'ໂຄລົມເບຍ','Comoros':'ໂຄໂມໂຣສ','Congo (Congo-Brazzaville)':'ຄອງໂກ','Costa Rica':'ຄອສຕາຣິກາ',
+      'Croatia':'ໂຄຣເອເຊຍ','Cuba':'ຄິວບາ','Cyprus':'ໄຊປຣັດ','Czechia':'ສາທາລະນະລັດເຊັກ','Democratic Republic of the Congo':'ສາທາລະນະລັດປະຊາທິປະໄຕຄອງໂກ',
+      'Denmark':'ເດັນມາກ','Djibouti':'ຈີບູຕີ','Dominica':'ໂດມີນິກາ','Dominican Republic':'ສາທາລະນະລັດໂດມີນິກັນ','Ecuador':'ເອກວາດໍ',
+      'Egypt':'ອີຢິບ','El Salvador':'ເອວຊາວາດໍ','Equatorial Guinea':'ອີເຄວທໍເຣຍນກີເນຍ','Eritrea':'ເອຣິເທຣຍ','Estonia':'ເອສໂຕເນຍ',
+      'Eswatini':'ເອສວາຕິນີ','Ethiopia':'ເອທິໂອເປຍ','Fiji':'ຟີຈິ','Finland':'ຟິນແລນ','France':'ຝຣັ່ງ',
+      'Gabon':'ກາບອງ','Gambia':'ແກມເບຍ','Georgia':'ຈໍເຈຍ','Germany':'ເຢຍລະມັນ','Ghana':'ການາ',
+      'Greece':'ກຣີກ','Grenada':'ເກຣເນດາ','Guatemala':'ກົວເຕມາລາ','Guinea':'ກີເນຍ','Guinea-Bissau':'ກີເນຍບີຊາວ',
+      'Guyana':'ກາຍອານາ','Haiti':'ໄຮຕີ','Honduras':'ຮອນດູຣັດ','Hungary':'ຮັງກາຣີ','Iceland':'ໄອສແລນ',
+      'India':'ອິນເດຍ','Indonesia':'ອິນໂດເນເຊຍ','Iran':'ອີຣ່ານ','Iraq':'ອີຣັກ','Ireland':'ໄອແລນ',
+      'Israel':'ອິສຣາເອນ','Italy':'ອິຕາລີ','Jamaica':'ຈາໄມກາ','Japan':'ຍີ່ປຸ່ນ','Jordan':'ຈໍແດນ',
+      'Kazakhstan':'ຄາຊັກສະຖານ','Kenya':'ເຄນຢາ','Kiribati':'ຄິຣິບາຕີ','Kosovo':'ໂຄໂຊໂວ','Kuwait':'ຄູເວດ',
+      'Kyrgyzstan':'ຄີກີສະຖານ','Laos':'ລາວ','Latvia':'ລັດເວຍ','Lebanon':'ເລບານອນ','Lesotho':'ເລໂຊໂທ',
+      'Liberia':'ໄລບີເຣຍ','Libya':'ລີເບຍ','Liechtenstein':'ລີກເທນສະໄຕນ໌','Lithuania':'ລິທົວເນຍ','Luxembourg':'ລຸກຊຳບວກ',
+      'Madagascar':'ມາດາກັສກາ','Malawi':'ມາລາວີ','Malaysia':'ມາເລເຊຍ','Maldives':'ມັນດີບ','Mali':'ມາລີ',
+      'Malta':'ມອນຕາ','Marshall Islands':'ໝູ່ເກາະມາແຊວ','Mauritania':'ມໍຣິເທເນຍ','Mauritius':'ມໍຣິຊຽດ','Mexico':'ແມັກຊິໂກ',
+      'Micronesia':'ໄມໂຄຣນີເຊຍ','Moldova':'ໂມນໂດວາ','Monaco':'ໂມນາໂຄ','Mongolia':'ມົງໂກລີ','Montenegro':'ມອນເຕເນໂກຣ',
+      'Morocco':'ໂມຣັອກໂຄ','Mozambique':'ໂມຊັມບິກ','Myanmar':'ມຽນມາ','Namibia':'ນາມິເບຍ','Nauru':'ນາອູຣູ',
+      'Nepal':'ເນປານ','Netherlands':'ໂຮນລັງ','New Zealand':'ນິວຊີແລນ','Nicaragua':'ນິກາຣາກົວ','Niger':'ໄນເຈີ',
+      'Nigeria':'ໄນຈີເຣຍ','North Korea':'ເກົາຫຼີເໜືອ','North Macedonia':'ມາເຊໂດເນຍເໜືອ','Norway':'ນອກແວ','Oman':'ໂອມານ',
+      'Pakistan':'ປາກິສຖານ','Palau':'ປາເລົາ','Palestine':'ປາແລສໄຕນ໌','Panama':'ປານາມາ','Papua New Guinea':'ປາປົວນິວກີເນຍ',
+      'Paraguay':'ປາຣາກວຍ','Peru':'ເປຣູ','Philippines':'ຟີລິບປິນ','Poland':'ໂປແລນ','Portugal':'ປອກຕຸຍການ',
+      'Qatar':'ກາຕາ','Romania':'ໂຣມາເນຍ','Russia':'ຣັດເຊຍ','Rwanda':'ຣວັນດາ','Saint Kitts and Nevis':'ເຊນ ຄິດ ແອນ ເນວິສ',
+      'Saint Lucia':'ເຊນ ລູເຊຍ','Saint Vincent and the Grenadines':'ເຊນ ວິນເຊັນ ແອນ ເກຣເນດີນ','Samoa':'ຊາມົວ','San Marino':'ຊານມາຣິໂນ','Sao Tome and Principe':'ເຊົາໂຕເມ ແອນ ພຣິນຊິບີ',
+      'Saudi Arabia':'ຊາອຸດີອາຣະເບຍ','Senegal':'ເຊເນກອນ','Serbia':'ເຊີເບຍ','Seychelles':'ເຊແຊວ','Sierra Leone':'ເຊຍລາລີໂອນ',
+      'Singapore':'ສິງກະໂປ','Slovakia':'ສະໂລວາເກຍ','Slovenia':'ສະໂລເວເນຍ','Solomon Islands':'ໝູ່ເກາະໂຊໂລມອນ','Somalia':'ໂຊມາເລຍ',
+      'South Africa':'ອາຟຣິກາໃຕ້','South Korea':'ເກົາຫຼີໃຕ້','South Sudan':'ຊູດານໃຕ້','Spain':'ສະເປນ','Sri Lanka':'ສີລັງກາ',
+      'Sudan':'ຊູດານ','Suriname':'ຊູຣິນາມ','Sweden':'ສະວີເດັນ','Switzerland':'ສະວິດເຊີແລນ','Syria':'ຊີເຣຍ',
+      'Taiwan':'ໄຕ້ຫວັນ','Tajikistan':'ທາຈິກິສະຖານ','Tanzania':'ແທນຊາເນຍ','Thailand':'ໄທ','Timor-Leste':'ຕີມໍເລສເຕ',
+      'Togo':'ໂຕໂກ','Tonga':'ຕອງກາ','Trinidad and Tobago':'ຕຣິນິແດດ ແອນ ໂຕແບໂກ','Tunisia':'ຕູນິເຊຍ','Turkey':'ຕວກກີ',
+      'Turkmenistan':'ເຕີກເມນິສະຖານ','Tuvalu':'ຕູວາລູ','Uganda':'ອູການດາ','Ukraine':'ຢູເຄຣນ','United Arab Emirates':'ສະຫະລັດອາຣັບເອມິເຣດ',
+      'United Kingdom':'ອັງກິດ','United States':'ສະຫະລັດອາເມລິກາ','Uruguay':'ອູຣູກວຍ','Uzbekistan':'ອຸສເບກິສະຖານ','Vanuatu':'ວານົວອາຕູ',
+      'Vatican City':'ນະຄອນວາຕິກັນ','Venezuela':'ເວເນຊູເອລາ','Vietnam':'ຫວຽດນາມ','Yemen':'ເຢເມນ','Zambia':'ແຊມເບຍ',
+      'Zimbabwe':'ຊິມບັບເວ'
+    };
+
+    /** Combined "English - Lao" country list — always bilingual regardless of UI language, so typing either works. */
+    function combinedCountryList_() {
+      return WORLD_COUNTRIES.map(c => {
+        const lo = WORLD_COUNTRIES_LO[c];
+        return lo ? `${c} - ${lo}` : c;
+      });
+    }
+
+    let laosAddressData = [];
+    google.script.run.withSuccessHandler(data => {
+      laosAddressData = data || [];
+    }).getLaosAddressData();
+
+    function isLaosCountry(value) {
+      const v = (value || '').trim().toLowerCase();
+      return v.split(' - ')[0].trim() === 'laos' || v.includes('ລາວ');
+    }
+
+    function uniqueSorted(arr) {
+      return Array.from(new Set(arr.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    }
+
+    /**
+     * Your Laos address data stores combined "English - Lao [- code]" text.
+     * Keep just the English + Lao parts (dropping any trailing numeric code),
+     * always shown together so searching in either language works.
+     */
+    function combinedAddressPart_(str) {
+      if (!str) return '';
+      const parts = str.split(' - ').map(s => s.trim());
+      const en = parts[0] || '';
+      const lo = parts[1] || '';
+      return lo ? `${en} - ${lo}` : en;
+    }
+
+    function countryOptions() { return combinedCountryList_(); }
+
+    function provinceOptions() {
+      if (!isLaosCountry(document.getElementById('Country').value)) return [];
+      return uniqueSorted(laosAddressData.map(r => combinedAddressPart_(r.province)));
+    }
+
+    function cityOptions() {
+      if (!isLaosCountry(document.getElementById('Country').value)) return [];
+      const prov = document.getElementById('Province').value.trim();
+      if (!prov) return [];
+      const matches = laosAddressData.filter(r => combinedAddressPart_(r.province) === prov);
+      return uniqueSorted(matches.map(r => combinedAddressPart_(r.city)));
+    }
+
+    function villageOptions() {
+      if (!isLaosCountry(document.getElementById('Country').value)) return [];
+      const prov = document.getElementById('Province').value.trim();
+      const city = document.getElementById('City').value.trim();
+      if (!prov || !city) return [];
+      const matches = laosAddressData.filter(r =>
+        combinedAddressPart_(r.province) === prov && combinedAddressPart_(r.city) === city);
+      return uniqueSorted(matches.map(r => combinedAddressPart_(r.village)));
+    }
+
+    /**
+     * Wires a text field to a filterable suggestion list drawn from a fixed
+     * in-memory array (rather than a server call) — used for Country and, for
+     * Laos, the Province/City/Village lookups. Typing freely is always allowed;
+     * suggestions are just a convenience.
+     */
+    function wireStaticAutocomplete(inputId, listId, getOptions, onChange) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+
+      function renderSuggestions() {
+        if (input.disabled) { list.style.display = 'none'; return; }
+        const q = input.value.trim().toLowerCase();
+        const options = getOptions();
+        const filtered = q ? options.filter(o => o.toLowerCase().includes(q)) : options;
+        list.innerHTML = '';
+        filtered.slice(0, 25).forEach(opt => {
+          const div = document.createElement('div');
+          div.textContent = opt;
+          div.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            input.value = opt;
+            list.style.display = 'none';
+            onChange();
+          });
+          list.appendChild(div);
+        });
+        list.style.display = filtered.length ? 'block' : 'none';
+      }
+
+      input.addEventListener('input', () => { onChange(); renderSuggestions(); });
+      input.addEventListener('focus', renderSuggestions);
+      document.addEventListener('click', (e) => {
+        if (!list.contains(e.target) && e.target !== input) list.style.display = 'none';
+      });
+    }
+
+    function updateAddressFieldStates() {
+      const countryVal = document.getElementById('Country').value.trim();
+      const provinceVal = document.getElementById('Province').value.trim();
+      const cityVal = document.getElementById('City').value.trim();
+
+      const provinceInput = document.getElementById('Province');
+      const cityInput = document.getElementById('City');
+      const villageInput = document.getElementById('Village');
+
+      provinceInput.disabled = !countryVal;
+      cityInput.disabled = !provinceVal;
+      villageInput.disabled = !cityVal;
+
+      provinceInput.placeholder = countryVal ? t('province_placeholder_open') : t('province_placeholder_locked');
+      cityInput.placeholder = provinceVal ? t('city_placeholder_open') : t('city_placeholder_locked');
+      villageInput.placeholder = cityVal ? t('village_placeholder_open') : t('village_placeholder_locked');
+    }
+
+    wireStaticAutocomplete('Country', 'CountryList', countryOptions, () => {
+      document.getElementById('Province').value = '';
+      document.getElementById('City').value = '';
+      document.getElementById('Village').value = '';
+      updateAddressFieldStates();
+    });
+    wireStaticAutocomplete('Province', 'ProvinceList', provinceOptions, () => {
+      document.getElementById('City').value = '';
+      document.getElementById('Village').value = '';
+      updateAddressFieldStates();
+    });
+    wireStaticAutocomplete('City', 'CityList', cityOptions, () => {
+      document.getElementById('Village').value = '';
+      updateAddressFieldStates();
+    });
+    wireStaticAutocomplete('Village', 'VillageList', villageOptions, () => {});
+
+    updateAddressFieldStates();
+
+    document.getElementById('editSearch').addEventListener('input', function () {
+      const q = this.value.trim();
+      clearTimeout(this._t);
+      this._t = setTimeout(() => {
+        google.script.run.withSuccessHandler(results => {
+          const list = document.getElementById('editSearchList');
+          list.innerHTML = '';
+          results.forEach(r => {
+            const opt = document.createElement('div');
+            opt.className = 'editsearch-option';
+            opt.innerHTML = memberOptionMarkup_(r);
+
+            // mousedown (not click) fires before the input can blur, which avoids
+            // a whole class of "the dropdown closed before my click registered" bugs.
+            opt.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              document.getElementById('editSearch').value = r.name;
+              list.style.display = 'none';
+              loadMember(r.id);
+            });
+            list.appendChild(opt);
+          });
+          list.style.display = results.length ? 'block' : 'none';
+        }).searchMembers(q);
+      }, 200);
+    });
+
+    function loadMember(id) {
+      google.script.run.withSuccessHandler(m => {
+        if (!m) {
+          showToast(t('toast_not_found'), true);
+          return;
+        }
+        document.getElementById('ID').value = m.ID;
+        document.getElementById('EnglishFirstName').value = m.EnglishFirstName || '';
+        document.getElementById('EnglishLastName').value = m.EnglishLastName || '';
+        document.getElementById('LaoFirstName').value = m.LaoFirstName || '';
+        document.getElementById('LaoLastName').value = m.LaoLastName || '';
+        document.getElementById('HmongFirstName').value = m.HmongFirstName || '';
+        document.getElementById('HmongLastName').value = m.HmongLastName || '';
+        document.getElementById('Gender').value = m.Gender || '';
+        document.getElementById('PhotoURL').value = m.PhotoURL || '';
+        document.getElementById('BirthDate').value = formatDateForInput(m.BirthDate);
+        document.getElementById('DeathDate').value = formatDateForInput(m.DeathDate);
+        document.getElementById('Country').value = m.Country || '';
+        document.getElementById('Province').value = m.Province || '';
+        document.getElementById('City').value = m.City || '';
+        document.getElementById('Village').value = m.Village || '';
+        updateAddressFieldStates();
+        document.getElementById('HouseLocationURL').value = m.HouseLocationURL || '';
+        document.getElementById('HouseImages').value = m.HouseImages || '';
+        document.getElementById('Notes').value = m.Notes || '';
+        setRelationField('Father', m.FatherID);
+        setRelationField('Mother', m.MotherID);
+        setRelationField('Spouse', m.SpouseID);
+        renderPhotoPreview(m.PhotoURL || '');
+        renderHouseGallery(m.HouseImages || '');
+        showToast(t('toast_loaded', { name: displayNameForToast_(m) }));
+      }).withFailureHandler(err => {
+        showToast(t('toast_error_loading', { msg: err.message }), true);
+      }).getMemberById(id);
+    }
+
+    function displayNameForToast_(m) {
+      return `${m.EnglishFirstName || ''} ${m.EnglishLastName || ''}`.trim() ||
+             `${m.LaoFirstName || ''} ${m.LaoLastName || ''}`.trim() ||
+             `${m.HmongFirstName || ''} ${m.HmongLastName || ''}`.trim() || t('unnamed_member');
+    }
+
+    function setRelationField(prefix, id) {
+      document.getElementById(prefix + 'ID').value = id || '';
+      if (!id) { document.getElementById(prefix + 'Search').value = ''; return; }
+      google.script.run.withSuccessHandler(m => {
+        if (!m) return;
+        const english = `${m.EnglishFirstName || ''} ${m.EnglishLastName || ''}`.trim();
+        const lao = `${m.LaoFirstName || ''} ${m.LaoLastName || ''}`.trim();
+        const hmong = `${m.HmongFirstName || ''} ${m.HmongLastName || ''}`.trim();
+        document.getElementById(prefix + 'Search').value = english || lao || hmong || '';
+      }).withFailureHandler(err => {
+        const relationLabel = t(prefix.toLowerCase() + '_label');
+        showToast(t('toast_error_loading_relation', { relation: relationLabel, msg: err.message }), true);
+      }).getMemberById(id);
+    }
+
+    function formatDateForInput(val) {
+      if (!val) return '';
+      const d = new Date(val);
+      if (isNaN(d)) return '';
+      return d.toISOString().split('T')[0];
+    }
+
+    function currentMemberLabel_() {
+      return [
+        `${document.getElementById('EnglishFirstName').value} ${document.getElementById('EnglishLastName').value}`.trim(),
+        `${document.getElementById('LaoFirstName').value} ${document.getElementById('LaoLastName').value}`.trim(),
+        `${document.getElementById('HmongFirstName').value} ${document.getElementById('HmongLastName').value}`.trim()
+      ].find(Boolean) || 'Unnamed';
+    }
+
+    /** Pulls the Drive file ID out of either link format we might encounter. */
+    function extractDriveFileId(url) {
+      if (!url) return null;
+      const m1 = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      if (m1) return m1[1];
+      const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+      if (m2) return m2[1];
+      return null;
+    }
+
+    /** Google's CDN thumbnail format renders far more reliably inside this sandboxed app frame. */
+    function driveThumbUrl(url) {
+      const id = extractDriveFileId(url);
+      // Request a decent resolution explicitly — without a size suffix, Google's
+      // CDN can serve a small default thumbnail that looks blurry once scaled up.
+      return id ? ('https://lh3.googleusercontent.com/d/' + id + '=s600') : url;
+    }
+
+    /** A larger version of the same photo, for the full-size lightbox popup. */
+    function driveLargeUrl(url) {
+      const id = extractDriveFileId(url);
+      return id ? ('https://lh3.googleusercontent.com/d/' + id + '=s1600') : url;
+    }
+
+    function openImageLightbox(url) {
+      if (!url) return;
+      document.getElementById('imageLightboxImg').src = driveLargeUrl(url);
+      document.getElementById('imageLightboxOverlay').classList.add('active');
+    }
+
+    function closeImageLightbox() {
+      document.getElementById('imageLightboxOverlay').classList.remove('active');
+    }
+
+    function renderPhotoPreview(url) {
+      const el = document.getElementById('photoPreview');
+      const wrap = document.getElementById('photoDropzone');
+      const existingBtn = wrap.querySelector('.remove-btn');
+      if (existingBtn) existingBtn.remove();
+
+      if (!url) {
+        el.innerHTML = '<span class="dropzone-placeholder">👤</span>';
+        el.classList.remove('has-photo');
+        return;
+      }
+      el.innerHTML = `<img src="${driveThumbUrl(url)}" alt="Profile photo">`;
+      el.classList.add('has-photo');
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'remove-btn avatar-remove-btn';
+      btn.title = 'Remove photo';
+      btn.textContent = '×';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = document.getElementById('ID').value;
+        if (!id) return;
+        google.script.run.withSuccessHandler(res => {
+          if (res.success) {
+            document.getElementById('PhotoURL').value = '';
+            renderPhotoPreview('');
+            showToast(t('toast_photo_removed'));
+          } else {
+            showToast(t('toast_could_not_remove_photo', { msg: res.error || 'unknown error' }), true);
+          }
+        }).withFailureHandler(err => showToast(t('toast_error_removing_photo', { msg: err.message }), true))
+          .removeMemberFile(id, 'PhotoURL', url);
+      });
+      wrap.appendChild(btn);
+    }
+
+    function renderHouseGallery(text) {
+      const container = document.getElementById('houseGallery');
+      container.innerHTML = '';
+      const urls = (text || '').split('\n').map(s => s.trim()).filter(Boolean);
+      urls.forEach((url, i) => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+
+        const thumb = document.createElement('div');
+        thumb.className = 'gallery-thumb';
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.title = 'Open';
+
+        const img = document.createElement('img');
+        img.src = driveThumbUrl(url);
+        img.alt = 'House file';
+        img.onerror = () => {
+          // Doesn't render as an image (e.g. a PDF) — show it as an openable file tile instead.
+          link.className = 'gallery-file';
+          link.textContent = '📄 File';
+        };
+        link.appendChild(img);
+        thumb.appendChild(link);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.title = 'Remove';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => {
+          const id = document.getElementById('ID').value;
+          if (!id) return;
+          google.script.run.withSuccessHandler(res => {
+            if (res.success) {
+              document.getElementById('HouseImages').value = res.allUrls;
+              renderHouseGallery(res.allUrls);
+              showToast(t('toast_file_removed'));
+            } else {
+              showToast(t('toast_could_not_remove_file', { msg: res.error || 'unknown error' }), true);
+            }
+          }).withFailureHandler(err => showToast(t('toast_error_removing_file', { msg: err.message }), true))
+            .removeMemberFile(id, 'HouseImages', url);
+        });
+        thumb.appendChild(removeBtn);
+
+        const caption = document.createElement('div');
+        caption.className = 'gallery-caption';
+        caption.textContent = 'File ' + (i + 1);
+
+        item.appendChild(thumb);
+        item.appendChild(caption);
+        container.appendChild(item);
+      });
+    }
+
+    /**
+     * Wires up a dropzone element to support click-to-browse, drag & drop, and
+     * pasting (Ctrl+V) an image — all three feed into the same upload handler.
+     * options: { multiple: bool, fieldName: 'PhotoURL'|'HouseImages', hintId, onUploaded(res), onDone() }
+     */
+    function setupDropzone(zoneId, fileInputId, options) {
+      const zone = document.getElementById(zoneId);
+      const input = document.getElementById(fileInputId);
+
+      zone.addEventListener('click', () => input.click());
+      zone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+      });
+
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        handleFiles(Array.from(e.dataTransfer.files));
+      });
+
+      zone.addEventListener('paste', (e) => {
+        const items = Array.from(e.clipboardData.items).filter(i => i.kind === 'file');
+        if (items.length) {
+          e.preventDefault();
+          handleFiles(items.map(i => i.getAsFile()).filter(Boolean));
+        }
+      });
+
+      input.addEventListener('change', function () {
+        handleFiles(Array.from(this.files));
+        this.value = ''; // allows re-selecting the same file again later
+      });
+
+      function handleFiles(files) {
+        if (!files.length) return;
+        const id = document.getElementById('ID').value;
+        if (!id) {
+          showToast(t('toast_save_first'), true);
+          return;
+        }
+
+        const toUpload = options.multiple ? files : [files[0]];
+        const label = currentMemberLabel_();
+        let index = 0;
+
+        function uploadNext() {
+          if (index >= toUpload.length) {
+            options.onDone && options.onDone();
+            return;
+          }
+          const file = toUpload[index];
+          showToast(t('toast_uploading', { i: index + 1, n: toUpload.length }));
+
+          const reader = new FileReader();
+          reader.onload = function () {
+            const base64 = reader.result.split(',')[1];
+            google.script.run.withSuccessHandler(res => {
+              if (res.success) {
+                options.onUploaded(res);
+              } else {
+                showToast(t('toast_upload_failed', { msg: res.error || 'unknown error' }), true);
+              }
+              index++;
+              uploadNext();
+            }).withFailureHandler(err => {
+              showToast(t('toast_upload_failed', { msg: err.message }), true);
+              index++;
+              uploadNext();
+            }).uploadMemberFile(id, label, file.name, file.type, base64, options.fieldName);
+          };
+          reader.readAsDataURL(file);
+        }
+        uploadNext();
+      }
+    }
+
+    setupDropzone('photoDropzone', 'PhotoFileInput', {
+      multiple: false,
+      fieldName: 'PhotoURL',
+      onUploaded: (res) => {
+        document.getElementById('PhotoURL').value = res.url;
+        renderPhotoPreview(res.url);
+        showToast(t('toast_photo_uploaded'));
+      }
+    });
+
+    setupDropzone('houseDropzone', 'HouseFileInput', {
+      multiple: true,
+      fieldName: 'HouseImages',
+      onUploaded: (res) => {
+        document.getElementById('HouseImages').value = res.allUrls;
+        renderHouseGallery(res.allUrls);
+      },
+      onDone: () => showToast(t('toast_all_uploaded'))
+    });
+
+    document.getElementById('HouseImages').addEventListener('input', function () {
+      renderHouseGallery(this.value);
+    });
+
+    function resetForm() {
+      document.getElementById('memberForm').reset();
+      document.getElementById('ID').value = '';
+      document.getElementById('PhotoURL').value = '';
+      ['FatherID', 'MotherID', 'SpouseID'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('editSearch').value = '';
+      document.getElementById('editSearchList').style.display = 'none';
+      renderPhotoPreview('');
+      renderHouseGallery('');
+      updateAddressFieldStates();
+    }
+
+    document.getElementById('memberForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const saveBtn = document.querySelector('#memberForm button[type="submit"]');
+
+      const payload = {
+        ID: document.getElementById('ID').value || undefined,
+        EnglishFirstName: document.getElementById('EnglishFirstName').value.trim(),
+        EnglishLastName: document.getElementById('EnglishLastName').value.trim(),
+        LaoFirstName: document.getElementById('LaoFirstName').value.trim(),
+        LaoLastName: document.getElementById('LaoLastName').value.trim(),
+        HmongFirstName: document.getElementById('HmongFirstName').value.trim(),
+        HmongLastName: document.getElementById('HmongLastName').value.trim(),
+        Gender: document.getElementById('Gender').value,
+        BirthDate: document.getElementById('BirthDate').value,
+        DeathDate: document.getElementById('DeathDate').value,
+        PhotoURL: document.getElementById('PhotoURL').value.trim(),
+        FatherID: document.getElementById('FatherID').value,
+        MotherID: document.getElementById('MotherID').value,
+        SpouseID: document.getElementById('SpouseID').value,
+        Country: document.getElementById('Country').value.trim(),
+        Province: document.getElementById('Province').value.trim(),
+        City: document.getElementById('City').value.trim(),
+        Village: document.getElementById('Village').value.trim(),
+        HouseLocationURL: document.getElementById('HouseLocationURL').value.trim(),
+        HouseImages: document.getElementById('HouseImages').value.trim(),
+        Notes: document.getElementById('Notes').value.trim()
+      };
+
+      if (!payload.EnglishFirstName && !payload.EnglishLastName &&
+          !payload.LaoFirstName && !payload.LaoLastName &&
+          !payload.HmongFirstName && !payload.HmongLastName) {
+        showToast(t('toast_need_name'), true);
+        return;
+      }
+
+      // Lock the button immediately, and show a big centered "Saving..." modal
+      // so a double-click (or an impatient second click while the request is
+      // in flight) can't create a duplicate record.
+      saveBtn.disabled = true;
+      showSaveModal('loading', t('toast_saving'));
+
+      const newPersonJobs = [];
+      ['Father', 'Mother', 'Spouse'].forEach(prefix => {
+        const hidden = document.getElementById(prefix + 'ID');
+        const newName = hidden.dataset.newName;
+        if (newName && !hidden.value) {
+          newPersonJobs.push({ prefix, newName });
+        }
+      });
+
+      function finalizeSave() {
+        google.script.run.withSuccessHandler(res => {
+          treeInitialized = false;
+
+          showSaveModal('success', res.mode === 'created' ? t('toast_saved_new') : t('toast_saved_update'));
+          resetForm();
+          setTimeout(() => {
+            hideSaveModal();
+            saveBtn.disabled = false;
+          }, 1400);
+        }).withFailureHandler(err => {
+          showSaveModal('error', t('toast_error', { msg: err.message }));
+          saveBtn.disabled = false;
+        }).saveMember(payload);
+      }
+
+      if (newPersonJobs.length === 0) {
+        finalizeSave();
+      } else {
+        let remaining = newPersonJobs.length;
+        let hadError = false;
+        newPersonJobs.forEach(job => {
+          const [first, ...rest] = job.newName.split(' ');
+          google.script.run.withSuccessHandler(res => {
+            payload[job.prefix + 'ID'] = res.id;
+            remaining--;
+            if (remaining === 0 && !hadError) finalizeSave();
+          }).withFailureHandler(err => {
+            hadError = true;
+            showSaveModal('error', t('toast_error', { msg: err.message }));
+            saveBtn.disabled = false;
+          }).saveMember({ EnglishFirstName: first, EnglishLastName: rest.join(' ') });
+        });
+      }
+    });
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (isError ? ' error' : '');
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    // ---------- Big centered save-status modal ----------
+    function showSaveModal(state, message) {
+      const overlay = document.getElementById('saveModalOverlay');
+      const box = document.getElementById('saveModalBox');
+      const spinner = document.getElementById('saveModalSpinner');
+      const icon = document.getElementById('saveModalIcon');
+      const msg = document.getElementById('saveModalMessage');
+
+      overlay.classList.add('active');
+      overlay.dataset.dismissable = (state === 'loading') ? 'false' : 'true';
+      box.classList.toggle('error', state === 'error');
+      box.classList.toggle('success', state === 'success');
+      msg.textContent = message;
+
+      if (state === 'loading') {
+        spinner.style.display = 'block';
+        icon.style.display = 'none';
+      } else {
+        spinner.style.display = 'none';
+        icon.style.display = 'block';
+        icon.textContent = state === 'success' ? '✅' : '❌';
+      }
+    }
+
+    function hideSaveModal() {
+      document.getElementById('saveModalOverlay').classList.remove('active');
+    }
+
+    document.getElementById('saveModalOverlay').addEventListener('click', function (e) {
+      if (e.target === this && this.dataset.dismissable === 'true') hideSaveModal();
+    });
+
+    // =========================================================
+    // Family Tree — D3 collapsible tree
+    // =========================================================
+    const NODE_W = 170, NODE_H = 64;
+    const H_SPACING = 210, V_SPACING = 160;
+
+    let root, svg, gZoom, zoomBehavior;
+    let allNodesFlat = [];
+
+    function getCanvasSize() {
+      const panel = document.getElementById('panel-tree');
+      const toolbar = panel.querySelector('.tree-toolbar');
+      const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 0;
+      const width = panel.clientWidth || (window.innerWidth - 220);
+      const height = (panel.clientHeight || window.innerHeight) - toolbarH;
+      return { width: width, height: height };
+    }
+
+    function initTree(members) {
+      if (!members || members.length === 0) {
+        document.getElementById('tree-canvas').outerHTML =
+          '<p class="no-members-msg" style="padding:40px;text-align:center;color:var(--ink-soft);">' + t('no_members_msg') + '</p>';
+        return;
+      }
+      const hierarchyRoot = buildHierarchy(members);
+      root = d3.hierarchy(hierarchyRoot);
+      root.x0 = 0;
+      root.y0 = 0;
+      root.children && root.children.forEach(collapseBeyond(1));
+      setupSvg();
+      update(root);
+    }
+
+    function buildHierarchy(members) {
+      const byId = {};
+      members.forEach(m => byId[m.ID] = Object.assign({}, m, { children: [] }));
+
+      const roots = [];
+      members.forEach(m => {
+        const node = byId[m.ID];
+        const primaryParentId = m.FatherID || m.MotherID;
+        node.secondaryParentId = (m.FatherID && m.MotherID) ? m.MotherID : null;
+        if (primaryParentId && byId[primaryParentId]) {
+          byId[primaryParentId].children.push(node);
+        } else {
+          roots.push(node);
+        }
+      });
+
+      return { ID: '__ROOT__', isVirtualRoot: true, children: roots };
+    }
+
+    function collapseBeyond(depth) {
+      return function recurse(d) {
+        if (d.depth >= depth && d.children) {
+          d._children = d.children;
+          d._children.forEach(recurse);
+          d.children = null;
+        } else if (d.children) {
+          d.children.forEach(recurse);
+        }
+      };
+    }
+
+    const AVATAR_R = 12;
+    const AVATAR_CX = -NODE_W / 2 + 16;
+    const AVATAR_CY = -NODE_H / 2 + 16;
+
+    function setupSvg() {
+      const size = getCanvasSize();
+      svg = d3.select('#tree-canvas').attr('width', size.width).attr('height', size.height);
+      svg.selectAll('*').remove();
+
+      const defs = svg.append('defs');
+      defs.append('clipPath').attr('id', 'avatarClip')
+        .append('circle').attr('cx', AVATAR_CX).attr('cy', AVATAR_CY).attr('r', AVATAR_R);
+
+      gZoom = svg.append('g').attr('class', 'zoom-layer');
+      zoomBehavior = d3.zoom().scaleExtent([0.15, 2.5]).on('zoom', (event) => {
+        gZoom.attr('transform', event.transform);
+      });
+      svg.call(zoomBehavior);
+      svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(size.width / 2, 60).scale(0.8));
+    }
+
+    function update(source) {
+      const treeLayout = d3.tree().nodeSize([H_SPACING, V_SPACING]);
+      treeLayout(root);
+
+      const nodes = root.descendants().filter(d => !d.data.isVirtualRoot);
+      const links = root.links().filter(l => !l.source.data.isVirtualRoot);
+      allNodesFlat = nodes;
+
+      // A spouse with no recorded parents of their own becomes an independent
+      // "root" in the tree structure, which the layout can place far away from
+      // their actual partner. Snap any such person back to sit right beside
+      // their spouse instead, as long as the spouse does have their own place
+      // in the tree (i.e. isn't also a disconnected root).
+      const byId_ = {};
+      nodes.forEach(n => { byId_[n.data.ID] = n; });
+      nodes.forEach(n => {
+        const hasOwnParents = n.data.FatherID || n.data.MotherID;
+        if (hasOwnParents) return;
+        const spouseNode = n.data.SpouseID ? byId_[n.data.SpouseID] : null;
+        if (!spouseNode) return;
+        const spouseHasParents = spouseNode.data.FatherID || spouseNode.data.MotherID;
+        if (!spouseHasParents) return;
+        n.x = spouseNode.x + (n.data.ID < spouseNode.data.ID ? -H_SPACING : H_SPACING);
+        n.y = spouseNode.y;
+      });
+
+      const link = gZoom.selectAll('path.link').data(links, d => d.target.data.ID);
+      link.join(
+        enter => enter.append('path').attr('class', 'link').attr('d', d => elbow(source, source)),
+        update => update,
+        exit => exit.remove()
+      ).transition().duration(300).attr('d', d => elbow(d.source, d.target));
+
+      const secondaryLinks = nodes.filter(d => d.data.secondaryParentId);
+      const byIdVisible = {};
+      nodes.forEach(n => byIdVisible[n.data.ID] = n);
+      const secData = secondaryLinks
+        .map(d => ({ target: d, source: byIdVisible[d.data.secondaryParentId] }))
+        .filter(d => d.source);
+
+      const secLink = gZoom.selectAll('path.parent-secondary').data(secData, d => d.target.data.ID);
+      secLink.join(
+        enter => enter.append('path').attr('class', 'link parent-secondary'),
+        update => update,
+        exit => exit.remove()
+      ).attr('d', d => elbow(d.source, d.target));
+
+      const spouseData = nodes
+        .filter(d => d.data.SpouseID && byIdVisible[d.data.SpouseID] && d.data.ID < d.data.SpouseID)
+        .map(d => ({ a: d, b: byIdVisible[d.data.SpouseID] }));
+
+      const spouseLink = gZoom.selectAll('line.spouse').data(spouseData, d => d.a.data.ID + '-' + d.b.data.ID);
+      spouseLink.join(
+        enter => enter.append('line').attr('class', 'link spouse'),
+        update => update,
+        exit => exit.remove()
+      )
+        .attr('x1', d => d.a.x).attr('y1', d => d.a.y)
+        .attr('x2', d => d.b.x).attr('y2', d => d.b.y);
+
+      const node = gZoom.selectAll('g.node').data(nodes, d => d.data.ID);
+
+      const nodeEnter = node.enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${source.x0},${source.y0})`)
+        .on('mouseenter', (event, d) => highlightRelationships(d))
+        .on('mouseleave', () => clearRelationshipHighlights());
+
+      nodeEnter.append('rect')
+        .attr('x', -NODE_W / 2).attr('y', -NODE_H / 2)
+        .attr('width', NODE_W).attr('height', NODE_H)
+        .attr('rx', 8)
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleFocus(d);
+        })
+        .append('title')
+        .text(d => focusedId === d.data.ID ? t('tooltip_unfocus') : t('tooltip_focus'));
+
+      nodeEnter.append('circle')
+        .attr('class', 'avatar-bg')
+        .attr('cx', AVATAR_CX).attr('cy', AVATAR_CY).attr('r', AVATAR_R)
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          if (d.data.PhotoURL) openImageLightbox(d.data.PhotoURL);
+        });
+
+      nodeEnter.append('text')
+        .attr('class', 'avatar-placeholder')
+        .attr('x', AVATAR_CX).attr('y', AVATAR_CY + 4)
+        .attr('text-anchor', 'middle')
+        .text('👤')
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          if (d.data.PhotoURL) openImageLightbox(d.data.PhotoURL);
+        });
+
+      nodeEnter.append('image')
+        .attr('class', 'avatar-thumb')
+        .attr('x', AVATAR_CX - AVATAR_R).attr('y', AVATAR_CY - AVATAR_R)
+        .attr('width', AVATAR_R * 2).attr('height', AVATAR_R * 2)
+        .attr('clip-path', 'url(#avatarClip)')
+        .attr('preserveAspectRatio', 'xMidYMid slice')
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          if (d.data.PhotoURL) openImageLightbox(d.data.PhotoURL);
+        })
+        .append('title')
+        .text(t('tooltip_view_photo'));
+
+      nodeEnter.append('circle')
+        .attr('class', 'avatar-ring')
+        .attr('cx', AVATAR_CX).attr('cy', AVATAR_CY).attr('r', AVATAR_R)
+        .attr('fill', 'none')
+        .style('pointer-events', 'none');
+
+      nodeEnter.append('text')
+        .attr('class', 'node-name-link')
+        .attr('text-anchor', 'middle')
+        .attr('y', -16)
+        .text(d => displayName(d.data))
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          goToEditMember(d.data.ID);
+        })
+        .append('title')
+        .text(t('tooltip_edit_name'));
+
+      nodeEnter.append('text')
+        .attr('class', 'gender-icon')
+        .attr('text-anchor', 'middle')
+        .attr('x', NODE_W / 2 - 14)
+        .attr('y', -NODE_H / 2 + 16)
+        .attr('fill', d => genderColor(d.data.Gender))
+        .text(d => genderIcon(d.data.Gender));
+
+      nodeEnter.append('text')
+        .attr('class', 'alt-name')
+        .attr('text-anchor', 'middle')
+        .attr('y', -1)
+        .text(d => altNamesLabel(d.data));
+
+      nodeEnter.append('text')
+        .attr('class', 'years')
+        .attr('text-anchor', 'middle')
+        .attr('y', 16)
+        .text(d => yearsLabel(d.data));
+
+      nodeEnter.append('circle')
+        .attr('class', 'toggle')
+        .attr('r', 9)
+        .attr('cy', NODE_H / 2)
+        .style('display', d => hasAnyChildren(d) ? 'block' : 'none')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleChildren(d);
+        })
+        .append('title')
+        .attr('class', 'toggle-title');
+
+      nodeEnter.append('text')
+        .attr('class', 'toggle-label')
+        .attr('y', NODE_H / 2 + 4)
+        .style('display', d => hasAnyChildren(d) ? 'block' : 'none')
+        .text(d => d.children ? '−' : '+')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleChildren(d);
+        })
+        .append('title')
+        .attr('class', 'toggle-label-title');
+
+      nodeEnter.append('circle')
+        .attr('class', 'toggle toggle-up')
+        .attr('r', 9)
+        .attr('cy', -NODE_H / 2)
+        .style('display', 'none')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleAncestors(d);
+        })
+        .append('title')
+        .attr('class', 'toggle-up-title');
+
+      nodeEnter.append('text')
+        .attr('class', 'toggle-label toggle-up-label')
+        .attr('y', -NODE_H / 2 + 4)
+        .style('display', 'none')
+        .text('+')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleAncestors(d);
+        })
+        .append('title')
+        .attr('class', 'toggle-up-label-title');
+
+      const nodeMerge = nodeEnter.merge(node);
+      nodeMerge.transition().duration(300).attr('transform', d => `translate(${d.x},${d.y})`);
+      nodeMerge.select('text.toggle-label').text(d => d.children ? '−' : (d._children ? '+' : ''));
+      nodeMerge.selectAll('circle.toggle-up, text.toggle-up-label')
+        .style('display', d => (focusedId && hasParentData_(d.data)) ? 'block' : 'none');
+      nodeMerge.select('text.toggle-up-label')
+        .text(d => upExpanded.has(d.data.ID) ? '−' : '+');
+      nodeMerge.classed('highlight', false);
+
+      // Show the person's photo if they have one; otherwise show a plain placeholder icon.
+      nodeMerge.select('image.avatar-thumb')
+        .attr('href', d => d.data.PhotoURL ? driveThumbUrl(d.data.PhotoURL) : null)
+        .style('display', d => d.data.PhotoURL ? 'block' : 'none')
+        .style('cursor', d => d.data.PhotoURL ? 'pointer' : 'default');
+      nodeMerge.select('text.avatar-placeholder')
+        .style('display', d => d.data.PhotoURL ? 'none' : 'block');
+      nodeMerge.select('circle.avatar-bg')
+        .style('cursor', d => d.data.PhotoURL ? 'pointer' : 'default');
+
+      // Keep every tooltip's wording in sync with the current state, so hovering
+      // always explains exactly what clicking will do right now.
+      refreshNodeTooltips(nodeMerge);
+
+      node.exit().transition().duration(200)
+        .attr('transform', d => `translate(${source.x},${source.y})`)
+        .remove();
+
+      nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+    }
+
+    function fullName(m, lang) {
+      return `${m[lang + 'FirstName'] || ''} ${m[lang + 'LastName'] || ''}`.trim();
+    }
+    function displayName(m) {
+      return fullName(m, 'English') || fullName(m, 'Lao') || fullName(m, 'Hmong') || '(unnamed)';
+    }
+    function altNamesLabel(m) {
+      const primary = displayName(m);
+      return ['Lao', 'Hmong', 'English']
+        .map(lang => fullName(m, lang))
+        .filter(n => n && n !== primary)
+        .join(' · ');
+    }
+    function searchableName(m) {
+      return [m.EnglishFirstName, m.EnglishLastName, m.LaoFirstName, m.LaoLastName, m.HmongFirstName, m.HmongLastName]
+        .filter(Boolean).join(' ').toLowerCase();
+    }
+
+    function genderIcon(g) {
+      const v = (g || '').toLowerCase();
+      if (v === 'male') return '♂';
+      if (v === 'female') return '♀';
+      return '';
+    }
+
+    function genderColor(g) {
+      const v = (g || '').toLowerCase();
+      if (v === 'male') return '#3b6ea5';
+      if (v === 'female') return '#b5507a';
+      return 'var(--ink-soft)';
+    }
+
+    /** Jumps from the tree straight into the Add/Edit form, pre-loaded with this person's record. */
+    function goToEditMember(id) {
+      showPanel('form');
+      loadMember(id);
+    }
+
+    let focusedId = null;
+    let upExpanded = new Set(); // ids whose parents have been pulled into the focus view
+
+    function hasParentData_(data) { return !!(data.FatherID || data.MotherID); }
+
+    /** Breaks a person's immediate family into named roles (rather than a flat set), needed to position them. */
+    function focusRoles(id) {
+      const person = allNodesFlat.find(n => n.data.ID === id);
+      const spouse = person && person.data.SpouseID ? allNodesFlat.find(n => n.data.ID === person.data.SpouseID) : null;
+      const children = allNodesFlat.filter(n => n.data.FatherID === id || n.data.MotherID === id);
+      return { person, spouse, children };
+    }
+
+    /**
+     * Repositions just this person's immediate family into a tight, compact
+     * layout (parents above, spouse alongside, children below) instead of
+     * leaving them scattered at their original full-tree coordinates — much
+     * easier to read and to print.
+     */
+    /** Recursively positions any further-expanded descendants beneath their own parent (simple, non-overlap-aware spacing). */
+    /** Recursively positions descendants beneath their parent, reserving a double-wide slot for anyone whose own spouse also needs to be shown (at any depth, not just the top row). */
+    function layoutExpandedDescendants_(id, baseX, baseY, positions, H, V) {
+      const kids = allNodesFlat.filter(n => n.data.FatherID === id || n.data.MotherID === id);
+      const spans = kids.map(kid => childNeedsSpouseSlot_(kid.data.ID, kid.data.SpouseID) ? 2 : 1);
+      const totalUnits = spans.reduce((a, b) => a + b, 0);
+      let leftUnit = -totalUnits / 2;
+      const cy = baseY + V;
+
+      kids.forEach((kid, i) => {
+        const span = spans[i];
+        const centerUnit = leftUnit + span / 2;
+        const slotCenterX = baseX + centerUnit * H;
+        const kidX = span === 2 ? slotCenterX - H / 2 : slotCenterX;
+        positions[kid.data.ID] = { x: kidX, y: cy };
+        if (span === 2) {
+          const kidSpouse = allNodesFlat.find(n => n.data.ID === kid.data.SpouseID);
+          if (kidSpouse && !positions[kidSpouse.data.ID]) {
+            positions[kidSpouse.data.ID] = { x: kidX + H, y: cy };
+          }
+        }
+        layoutExpandedDescendants_(kid.data.ID, kidX, cy, positions, H, V);
+        leftUnit += span;
+      });
+    }
+
+    /** Recursively positions a person's parents above them, continuing upward as far as "+" has been clicked. */
+    function layoutExpandedAncestors_(id, baseX, baseY, positions, H, V) {
+      if (!upExpanded.has(id)) return;
+      const person = allNodesFlat.find(n => n.data.ID === id);
+      if (!person) return;
+      const father = person.data.FatherID ? allNodesFlat.find(n => n.data.ID === person.data.FatherID) : null;
+      const mother = person.data.MotherID ? allNodesFlat.find(n => n.data.ID === person.data.MotherID) : null;
+
+      // Each parent keeps their existing spot if they already have one (e.g. Khamvang,
+      // already placed as one of Nengvang's children) — otherwise they get a fresh
+      // spot anchored right beside whichever parent DOES already have a position,
+      // so a spouse like Mai Lor always lands directly next to their partner.
+      let fatherPos = father ? positions[father.data.ID] : null;
+      let motherPos = mother ? positions[mother.data.ID] : null;
+      const coupleGap = NODE_W + 20; // tighter than sibling spacing, so a revealed spouse doesn't land exactly on a sibling's slot
+
+      if (father && !fatherPos) {
+        fatherPos = motherPos ? { x: motherPos.x - coupleGap, y: motherPos.y } : { x: baseX - (mother ? H / 2 : 0), y: baseY - V };
+        positions[father.data.ID] = fatherPos;
+      }
+      if (mother && !motherPos) {
+        motherPos = fatherPos ? { x: fatherPos.x + coupleGap, y: fatherPos.y } : { x: baseX + (father ? H / 2 : 0), y: baseY - V };
+        positions[mother.data.ID] = motherPos;
+      }
+
+      if (father) layoutExpandedAncestors_(father.data.ID, fatherPos.x, fatherPos.y, positions, H, V);
+      if (mother) layoutExpandedAncestors_(mother.data.ID, motherPos.x, motherPos.y, positions, H, V);
+    }
+
+    /** True if this child's own spouse needs to be shown too (because one of their kids has been ancestor-expanded). */
+    function childNeedsSpouseSlot_(childId, spouseId) {
+      if (!spouseId) return false;
+      return allNodesFlat.some(n =>
+        (n.data.FatherID === childId || n.data.MotherID === childId) && upExpanded.has(n.data.ID));
+    }
+
+    function applyFocusLayout(id) {
+      const { person, spouse, children } = focusRoles(id);
+      if (!person) return;
+
+      const H = 210, V = 160;
+      const baseX = person.x, baseY = person.y;
+      const positions = {};
+
+      if (spouse) {
+        positions[person.data.ID] = { x: baseX - H / 2, y: baseY };
+        positions[spouse.data.ID] = { x: baseX + H / 2, y: baseY };
+      } else {
+        positions[person.data.ID] = { x: baseX, y: baseY };
+      }
+
+      // Each child normally takes one slot, but a child whose own spouse needs
+      // to be shown (because their kids have been ancestor-expanded) takes a
+      // double-wide slot instead — reserved up front, so later siblings shift
+      // over to make room rather than the spouse overlapping onto them.
+      const spans = children.map(child => childNeedsSpouseSlot_(child.data.ID, child.data.SpouseID) ? 2 : 1);
+      const totalUnits = spans.reduce((a, b) => a + b, 0);
+      let leftUnit = -totalUnits / 2;
+      const cy = baseY + V;
+
+      children.forEach((child, i) => {
+        const span = spans[i];
+        const centerUnit = leftUnit + span / 2;
+        const slotCenterX = baseX + centerUnit * H;
+        const childX = span === 2 ? slotCenterX - H / 2 : slotCenterX;
+        positions[child.data.ID] = { x: childX, y: cy };
+        if (span === 2) {
+          const childSpouse = allNodesFlat.find(n => n.data.ID === child.data.SpouseID);
+          if (childSpouse) positions[childSpouse.data.ID] = { x: childX + H, y: cy };
+        }
+        layoutExpandedDescendants_(child.data.ID, childX, cy, positions, H, V);
+        leftUnit += span;
+      });
+
+      // Ancestors: walk upward from self and spouse (and anyone else already
+      // positioned who has requested their own parents be shown), as deep as
+      // the user has clicked the "+" at the top of each box.
+      Object.keys(positions).forEach(pid => {
+        if (upExpanded.has(pid)) {
+          const p = positions[pid];
+          layoutExpandedAncestors_(pid, p.x, p.y, positions, H, V);
+        }
+      });
+
+      // Mutate the shared node objects' x/y directly — links reference these
+      // same objects, so redrawing them afterward picks up the new positions.
+      allNodesFlat.forEach(nd => {
+        if (positions[nd.data.ID]) { nd.x = positions[nd.data.ID].x; nd.y = positions[nd.data.ID].y; }
+      });
+
+      gZoom.selectAll('g.node').filter(d => positions[d.data.ID])
+        .transition().duration(400)
+        .attr('transform', d => `translate(${d.x},${d.y})`);
+
+      gZoom.selectAll('path.link').filter(l => positions[l.source.data.ID] && positions[l.target.data.ID])
+        .transition().duration(400)
+        .attr('d', l => elbow(l.source, l.target));
+      gZoom.selectAll('path.parent-secondary').filter(l => positions[l.source.data.ID] && positions[l.target.data.ID])
+        .transition().duration(400)
+        .attr('d', l => elbow(l.source, l.target));
+      gZoom.selectAll('line.spouse').filter(l => positions[l.a.data.ID] && positions[l.b.data.ID])
+        .transition().duration(400)
+        .attr('x1', l => l.a.x).attr('y1', l => l.a.y)
+        .attr('x2', l => l.b.x).attr('y2', l => l.b.y);
+    }
+
+    /** Recursively adds every currently-rendered (expanded) descendant of a person into the given set. */
+    function collectRenderedDescendants_(id, set) {
+      allNodesFlat.forEach(n => {
+        if ((n.data.FatherID === id || n.data.MotherID === id) && !set.has(n.data.ID)) {
+          set.add(n.data.ID);
+          collectRenderedDescendants_(n.data.ID, set);
+        }
+      });
+    }
+
+    /** All relatives currently in view: the focused person, spouse, descendants, and however far up "+" has been clicked. */
+    function familySetFor(id) {
+      const set = new Set([id]);
+      const person = allNodesFlat.find(n => n.data.ID === id);
+      if (person && person.data.SpouseID) set.add(person.data.SpouseID);
+      collectRenderedDescendants_(id, set);
+
+      let changed = true;
+      while (changed) {
+        changed = false;
+        Array.from(set).forEach(memberId => {
+          if (!upExpanded.has(memberId)) return;
+          const m = allNodesFlat.find(n => n.data.ID === memberId);
+          if (!m) return;
+          [m.data.FatherID, m.data.MotherID].forEach(pid => {
+            if (pid && !set.has(pid)) { set.add(pid); changed = true; }
+          });
+        });
+      }
+      return set;
+    }
+
+    /**
+     * Clicking the "+" at the top of a box reveals that person's own parents
+     * (and, recursively, further ancestors) — and, in the same click, also
+     * reveals that person's siblings (the parents' other children), so you
+     * see the whole sibling row at once instead of needing a second click.
+     * Clicking again ("−") hides all of it back down.
+     */
+    function toggleAncestors(d) {
+      if (!focusedId) return;
+      const id = d.data.ID;
+      if (upExpanded.has(id)) {
+        upExpanded.delete(id);
+        applyFocusVisibility();
+        applyFocusLayout(focusedId);
+        return;
+      }
+      upExpanded.add(id);
+
+      // Auto-expand the parents' own children list (if it was collapsed) so
+      // siblings show up immediately, in the same action as revealing parents.
+      const father = d.data.FatherID ? allNodesFlat.find(n => n.data.ID === d.data.FatherID) : null;
+      const mother = d.data.MotherID ? allNodesFlat.find(n => n.data.ID === d.data.MotherID) : null;
+      let needsRerender = false;
+      [father, mother].forEach(p => {
+        if (p && p._children) { p.children = p._children; p._children = null; needsRerender = true; }
+      });
+      if (needsRerender) update(d);
+
+      applyFocusVisibility();
+      applyFocusLayout(focusedId);
+    }
+
+    /** Clicking a box's background isolates that person's immediate family into a tighter layout; clicking it again restores the full tree. */
+    function toggleFocus(d) {
+      if (focusedId === d.data.ID) {
+        focusedId = null;
+        upExpanded.clear();
+        applyFocusVisibility();
+        update(root);
+        return;
+      }
+      focusedId = d.data.ID;
+      upExpanded = new Set([d.data.ID]); // auto-reveal this person's own parents, as before
+      // Make sure this person's children are actually expanded/rendered so they can be shown.
+      if (d._children) {
+        d.children = d._children;
+        d._children = null;
+      }
+      update(d);
+      applyFocusVisibility();
+      applyFocusLayout(d.data.ID);
+    }
+
+    function applyFocusVisibility() {
+      gZoom.selectAll('g.node').classed('is-focused', d => d.data.ID === focusedId);
+      gZoom.selectAll('circle.toggle-up, text.toggle-up-label')
+        .style('display', d => (focusedId && hasParentData_(d.data)) ? 'block' : 'none');
+      gZoom.selectAll('text.toggle-up-label').text(d => upExpanded.has(d.data.ID) ? '−' : '+');
+
+      if (!focusedId) {
+        gZoom.selectAll('g.node').style('display', null);
+        gZoom.selectAll('path.link').style('display', null);
+        gZoom.selectAll('path.parent-secondary').style('display', null);
+        gZoom.selectAll('line.spouse').style('display', null);
+        return;
+      }
+      const familySet = familySetFor(focusedId);
+      gZoom.selectAll('g.node').style('display', d => familySet.has(d.data.ID) ? null : 'none');
+      gZoom.selectAll('path.link').style('display', l => (familySet.has(l.source.data.ID) && familySet.has(l.target.data.ID)) ? null : 'none');
+      gZoom.selectAll('path.parent-secondary').style('display', l => (familySet.has(l.source.data.ID) && familySet.has(l.target.data.ID)) ? null : 'none');
+      gZoom.selectAll('line.spouse').style('display', l => (familySet.has(l.a.data.ID) && familySet.has(l.b.data.ID)) ? null : 'none');
+    }
+
+    /** Any other tree control (search/expand/collapse) exits focus mode first, to avoid stale hidden nodes. */
+    function clearFocusMode() {
+      if (focusedId) {
+        focusedId = null;
+        upExpanded.clear();
+        applyFocusVisibility();
+      }
+    }
+
+    function clearRelationshipHighlights() {
+      gZoom.selectAll('path.link').classed('hl-parent', false).classed('hl-child', false);
+      gZoom.selectAll('path.parent-secondary').classed('hl-parent', false);
+      gZoom.selectAll('line.spouse').classed('hl-spouse', false);
+    }
+
+    /** On hovering a box, lights up that person's parent links (blue), spouse link (gold), and children links (green). */
+    function highlightRelationships(d) {
+      clearRelationshipHighlights();
+      const id = d.data.ID;
+
+      gZoom.selectAll('path.link').each(function (l) {
+        if (l.target.data.ID === id) d3.select(this).classed('hl-parent', true);
+        if (l.source.data.ID === id) d3.select(this).classed('hl-child', true);
+      });
+      gZoom.selectAll('path.parent-secondary').each(function (l) {
+        if (l.target.data.ID === id) d3.select(this).classed('hl-parent', true);
+      });
+      gZoom.selectAll('line.spouse').each(function (l) {
+        if (l.a.data.ID === id || l.b.data.ID === id) d3.select(this).classed('hl-spouse', true);
+      });
+    }
+
+    function hasAnyChildren(d) { return !!(d.children || d._children); }
+
+    function toggleChildren(d) {
+      if (d.children) { d._children = d.children; d.children = null; }
+      else if (d._children) { d.children = d._children; d._children = null; }
+      else return;
+
+      update(d);
+      if (focusedId) {
+        // Still in a focused family view — fold the newly expanded/collapsed
+        // descendants into that same compact layout rather than exiting it.
+        applyFocusVisibility();
+        applyFocusLayout(focusedId);
+      }
+    }
+
+    function expandAll() {
+      clearFocusMode();
+      root.each(d => { if (d._children) { d.children = d._children; d._children = null; } });
+      update(root);
+    }
+
+    function collapseAll() {
+      clearFocusMode();
+      root.children && root.children.forEach(collapseBeyond(1));
+      update(root);
+    }
+
+    function elbow(s, t) {
+      const midY = (s.y + t.y) / 2;
+      return `M${s.x},${s.y} C${s.x},${midY} ${t.x},${midY} ${t.x},${t.y}`;
+    }
+
+    function yearsLabel(m) {
+      const b = m.BirthDate ? new Date(m.BirthDate).getFullYear() : '?';
+      const dth = m.DeathDate ? new Date(m.DeathDate).getFullYear() : '';
+      if (!m.BirthDate && !m.DeathDate) return '';
+      return dth ? `${b} – ${dth}` : `b. ${b}`;
+    }
+
+    function resetZoom() {
+      const size = getCanvasSize();
+      svg.transition().duration(300)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(size.width / 2, 60).scale(0.8));
+    }
+
+    /** Prints whatever is currently visible in the tree — full tree, or the compact focused-family view. */
+    function printTree() {
+      if (!gZoom || !svg) return;
+
+      // The SVG only has a fixed pixel width/height matching the current on-screen
+      // zoom/pan — without a viewBox, printing would just capture whatever tiny
+      // sliver happens to overlap the page. Compute the actual content bounds
+      // (in the zoom-layer's own coordinate space, unaffected by current pan/zoom)
+      // and use that as the viewBox so the whole tree scales to fit the page.
+      const bbox = gZoom.node().getBBox();
+      const pad = 40;
+      const prevWidth = svg.attr('width');
+      const prevHeight = svg.attr('height');
+      const prevViewBox = svg.attr('viewBox');
+      const prevTransform = gZoom.attr('transform');
+
+      svg
+        .attr('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`)
+        .attr('width', null)
+        .attr('height', null);
+      gZoom.attr('transform', null); // print the true layout, ignoring the current on-screen pan/zoom
+
+      window.print();
+
+      // Restore the interactive view once the print dialog closes.
+      svg.attr('width', prevWidth).attr('height', prevHeight);
+      if (prevViewBox) svg.attr('viewBox', prevViewBox); else svg.attr('viewBox', null);
+      gZoom.attr('transform', prevTransform);
+    }
+
+    /** Locates a person in the tree by ID (expanding collapsed branches if needed), then switches into focus mode on them. */
+    function jumpToPersonAndFocus(id) {
+      if (!root) return;
+
+      let target = null;
+      root.each(d => { if (!d.data.isVirtualRoot && d.data.ID === id) target = d; });
+      if (!target) {
+        expandAll();
+        root.each(d => { if (!d.data.isVirtualRoot && d.data.ID === id) target = d; });
+      }
+      if (!target) return;
+
+      if (focusedId !== target.data.ID) toggleFocus(target);
+
+      setTimeout(() => {
+        const size = getCanvasSize();
+        svg.transition().duration(400)
+          .call(zoomBehavior.transform, d3.zoomIdentity.translate(size.width / 2 - target.x, size.height / 2 - target.y).scale(1));
+      }, 450);
+    }
+
+    document.getElementById('searchBox').addEventListener('input', function () {
+      const q = this.value.trim();
+      const list = document.getElementById('searchBoxList');
+      clearTimeout(this._t);
+      if (!q) { list.style.display = 'none'; return; }
+      this._t = setTimeout(() => {
+        google.script.run.withSuccessHandler(results => {
+          list.innerHTML = '';
+          results.forEach(r => {
+            const opt = document.createElement('div');
+            opt.className = 'editsearch-option';
+            opt.innerHTML = memberOptionMarkup_(r);
+            opt.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              document.getElementById('searchBox').value = r.name;
+              list.style.display = 'none';
+              jumpToPersonAndFocus(r.id);
+            });
+            list.appendChild(opt);
+          });
+          list.style.display = results.length ? 'block' : 'none';
+        }).searchMembers(q);
+      }, 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      const list = document.getElementById('searchBoxList');
+      const input = document.getElementById('searchBox');
+      if (list && !list.contains(e.target) && e.target !== input) list.style.display = 'none';
+    });
+
+    window.addEventListener('resize', () => {
+      if (!svg) return;
+      const size = getCanvasSize();
+      svg.attr('width', size.width).attr('height', size.height);
+    });
+
+    // =========================================================
+    // Guideline — accordion FAQ (click a question to show/hide its answer)
+    // =========================================================
+    const GUIDE_ITEMS = [
+      { q: 'guide_q1', a: 'guide_a1' },
+      { q: 'guide_q2', a: 'guide_a2' },
+      { q: 'guide_q3', a: 'guide_a3' },
+      { q: 'guide_q10', a: 'guide_a10' },
+      { q: 'guide_q4', a: 'guide_a4' },
+      { q: 'guide_q5', a: 'guide_a5' },
+      { q: 'guide_q9', a: 'guide_a9' },
+      { q: 'guide_q6', a: 'guide_a6' },
+      { q: 'guide_q7', a: 'guide_a7' },
+      { q: 'guide_q8', a: 'guide_a8' }
+    ];
+
+    function renderGuideAccordion() {
+      const container = document.getElementById('guideAccordion');
+      if (!container) return;
+      // Remember which items were open, so switching language doesn't collapse everything.
+      const openIndexes = new Set(
+        Array.from(container.querySelectorAll('.accordion-item.open')).map(el => el.dataset.index)
+      );
+      container.innerHTML = '';
+      GUIDE_ITEMS.forEach((item, i) => {
+        const el = document.createElement('div');
+        el.className = 'accordion-item' + (openIndexes.has(String(i)) ? ' open' : '');
+        el.dataset.index = String(i);
+        el.innerHTML = `
+          <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
+            <span>${t(item.q)}</span>
+            <span class="accordion-icon">${openIndexes.has(String(i)) ? '−' : '+'}</span>
+          </button>
+          <div class="accordion-body"><p>${t(item.a)}</p></div>`;
+        container.appendChild(el);
+      });
+    }
+
+    function toggleAccordion(headerEl) {
+      const item = headerEl.parentElement;
+      const willOpen = !item.classList.contains('open');
+      item.classList.toggle('open', willOpen);
+      headerEl.querySelector('.accordion-icon').textContent = willOpen ? '−' : '+';
+    }
+
+    renderGuideAccordion();
+    applyStaticTranslations();
+  </script>
+</body>
+</html>
