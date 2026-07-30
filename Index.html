@@ -12,7 +12,27 @@
     <button type="button" class="lang-btn" data-lang="hmn" onclick="setLanguage('hmn')">Hmoob</button>
   </div>
 
-  <div class="app-shell">
+  <button type="button" id="mobileBackBtn" class="mobile-back-btn" onclick="goToMobileHome()">←</button>
+
+  <div id="mobileHome" class="mobile-home">
+    <h1>🌳 Family Tree</h1>
+    <div class="mobile-menu">
+      <button type="button" class="mobile-menu-card" onclick="showPanel('form')">
+        <span class="mobile-menu-icon">📝</span>
+        <span data-i18n="nav_form">Add / Edit Member</span>
+      </button>
+      <button type="button" class="mobile-menu-card" onclick="showPanel('tree')">
+        <span class="mobile-menu-icon">🌲</span>
+        <span data-i18n="nav_tree">Family Tree</span>
+      </button>
+      <button type="button" class="mobile-menu-card" onclick="showPanel('guide')">
+        <span class="mobile-menu-icon">📖</span>
+        <span data-i18n="nav_guide">Guideline</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
     <aside class="sidebar">
       <h1>🌳 Family Tree</h1>
       <nav>
@@ -208,15 +228,17 @@
       <!-- ================= PANEL: Family Tree ================= -->
       <section id="panel-tree" class="panel-tree">
         <div class="tree-toolbar">
-          <strong style="margin-right:auto;">🌲 <span data-i18n="tree_title">Family Tree</span></strong>
-          <div class="autocomplete-wrap" style="max-width:340px; min-width:280px; flex:1;">
+          <strong class="tree-toolbar-title" style="margin-right:auto;">🌲 <span data-i18n="tree_title">Family Tree</span></strong>
+          <div class="autocomplete-wrap tree-toolbar-search" style="max-width:340px; min-width:280px; flex:1;">
             <input type="text" id="searchBox" autocomplete="off" data-i18n-placeholder="tree_search_placeholder" placeholder="Search a name...">
             <div class="autocomplete-list" id="searchBoxList"></div>
           </div>
-          <button class="btn secondary" onclick="expandAll()" data-i18n="expand_all_btn">Expand all</button>
-          <button class="btn secondary" onclick="collapseAll()" data-i18n="collapse_all_btn">Collapse all</button>
-          <button class="btn secondary" onclick="resetZoom()" data-i18n="reset_view_btn">Reset view</button>
-          <button class="btn secondary" onclick="printTree()" data-i18n="print_btn">🖨️ Print</button>
+          <div class="tree-toolbar-buttons">
+            <button class="btn secondary" onclick="expandAll()" data-i18n="expand_all_btn">Expand all</button>
+            <button class="btn secondary" onclick="collapseAll()" data-i18n="collapse_all_btn">Collapse all</button>
+            <button class="btn secondary" onclick="resetZoom()" data-i18n="reset_view_btn">Reset view</button>
+            <button class="btn secondary" onclick="printTree()" id="printBtn"><span class="btn-icon">🖨️</span><span class="btn-label" data-i18n="print_btn">Print</span></button>
+          </div>
         </div>
         <svg id="tree-canvas" style="flex:1;"></svg>
       </section>
@@ -316,7 +338,7 @@
         relation_placeholder: 'Search or type new name...',
         notes_label: 'Notes', save_btn: '💾 Save Member', clear_btn: 'Clear Form',
         tree_title: 'Family Tree', tree_search_placeholder: 'Search a name...',
-        expand_all_btn: 'Expand all', collapse_all_btn: 'Collapse all', reset_view_btn: 'Reset view', print_btn: '🖨️ Print',
+        expand_all_btn: 'Expand all', collapse_all_btn: 'Collapse all', reset_view_btn: 'Reset view', print_btn: 'Print',
         no_members_msg: 'No members yet — add some from the "Add / Edit Member" page first.',
         toast_need_name: 'Please enter at least one name (English, Lao, or Hmong).',
         toast_saving: 'Saving...', toast_saved_new: 'Saved! New member added.', toast_saved_update: 'Saved! Record updated.',
@@ -393,7 +415,7 @@
         relation_placeholder: 'ຄົ້ນຫາ ຫຼື ພິມຊື່ໃໝ່...',
         notes_label: 'ບັນທຶກ', save_btn: '💾 ບັນທຶກສະມາຊິກ', clear_btn: 'ລ້າງແບບຟອມ',
         tree_title: 'ຕົ້ນຄອບຄົວ', tree_search_placeholder: 'ຄົ້ນຫາຊື່...',
-        expand_all_btn: 'ຂະຫຍາຍທັງໝົດ', collapse_all_btn: 'ຫຍໍ້ທັງໝົດ', reset_view_btn: 'ຣີເຊັດມຸມມອງ', print_btn: '🖨️ ພິມ',
+        expand_all_btn: 'ຂະຫຍາຍທັງໝົດ', collapse_all_btn: 'ຫຍໍ້ທັງໝົດ', reset_view_btn: 'ຣີເຊັດມຸມມອງ', print_btn: 'ພິມ',
         no_members_msg: 'ຍັງບໍ່ມີສະມາຊິກເທື່ອ — ເພີ່ມຈາກໜ້າ "ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ" ກ່ອນ.',
         toast_need_name: 'ກະລຸນາໃສ່ຊື່ຢ່າງໜ້ອຍໜຶ່ງພາສາ (ອັງກິດ, ລາວ, ຫຼື ມົ້ງ).',
         toast_saving: 'ກຳລັງບັນທຶກ...', toast_saved_new: 'ບັນທຶກແລ້ວ! ເພີ່ມສະມາຊິກໃໝ່ສຳເລັດ.', toast_saved_update: 'ບັນທຶກແລ້ວ! ອັບເດດຂໍ້ມູນສຳເລັດ.',
@@ -470,7 +492,7 @@
         relation_placeholder: 'Nrhiav lossis sau lub npe tshiab...',
         notes_label: 'Sau Ntxiv', save_btn: '💾 Khaws Cia Tus Tswv Cuab', clear_btn: 'Ntxuav Daim Ntawv',
         tree_title: 'Tsob Ntoo Tsev Neeg', tree_search_placeholder: 'Nrhiav lub npe...',
-        expand_all_btn: 'Nthuav Tag Nrho', collapse_all_btn: 'Zais Tag Nrho', reset_view_btn: 'Rov Qab Saib', print_btn: '🖨️ Luam Ntawv',
+        expand_all_btn: 'Nthuav Tag Nrho', collapse_all_btn: 'Zais Tag Nrho', reset_view_btn: 'Rov Qab Saib', print_btn: 'Luam Ntawv',
         no_members_msg: 'Tseem tsis tau muaj tswv cuab — thov ntxiv ntawm nplooj "Ntxiv / Kho Tswv Cuab" ua ntej.',
         toast_need_name: 'Thov sau tsawg kawg ib lub npe (Askiv, Los, lossis Hmoob).',
         toast_saving: 'Tab tom khaws cia...', toast_saved_new: 'Khaws cia lawm! Ntxiv tau tus tswv cuab tshiab.', toast_saved_update: 'Khaws cia lawm! Hloov tau cov ntaub ntawv.',
@@ -549,6 +571,10 @@
       renderGuideAccordion();
     }
 
+    function isMobileView() {
+      return window.matchMedia('(max-width: 700px)').matches;
+    }
+
     function showPanel(name) {
       document.getElementById('panel-form').classList.toggle('active', name === 'form');
       document.getElementById('panel-tree').classList.toggle('active', name === 'tree');
@@ -556,6 +582,12 @@
       document.getElementById('navForm').classList.toggle('active', name === 'form');
       document.getElementById('navTree').classList.toggle('active', name === 'tree');
       document.getElementById('navGuide').classList.toggle('active', name === 'guide');
+
+      if (isMobileView()) {
+        document.getElementById('mobileHome').classList.add('hidden');
+        document.getElementById('appShell').classList.add('mobile-active');
+        document.getElementById('mobileBackBtn').classList.add('visible');
+      }
 
       if (name === 'tree' && !treeInitialized) {
         treeInitialized = true;
@@ -565,6 +597,27 @@
         svg.attr('width', size.width).attr('height', size.height);
       }
     }
+
+    /** The "<" button at the top — returns from a detail screen to the mobile home menu. */
+    function goToMobileHome() {
+      document.getElementById('mobileHome').classList.remove('hidden');
+      document.getElementById('appShell').classList.remove('mobile-active');
+      document.getElementById('mobileBackBtn').classList.remove('visible');
+    }
+
+    /** Keeps the mobile-home/detail state consistent if the window is resized across the mobile breakpoint. */
+    function syncMobileLayout() {
+      if (isMobileView()) {
+        if (!document.getElementById('appShell').classList.contains('mobile-active')) {
+          document.getElementById('mobileHome').classList.remove('hidden');
+        }
+      } else {
+        document.getElementById('mobileHome').classList.add('hidden');
+        document.getElementById('appShell').classList.remove('mobile-active');
+        document.getElementById('mobileBackBtn').classList.remove('visible');
+      }
+    }
+    window.addEventListener('resize', syncMobileLayout);
 
     // =========================================================
     // Add / Edit Member — autocomplete + save logic
@@ -2125,6 +2178,7 @@
 
     renderGuideAccordion();
     applyStaticTranslations();
+    syncMobileLayout();
   </script>
 </body>
 </html>
