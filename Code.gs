@@ -84,7 +84,7 @@ function searchableName_(m) {
     .filter(Boolean).join(' ').toLowerCase();
 }
 
-/** Lightweight lookup for autocomplete fields: [{id, name, birthYear, fatherName, motherName}] */
+/** Lightweight lookup for autocomplete fields: [{id, names, birthYear, father, mother, ...}] */
 function searchMembers(query) {
   const q = (query || '').toString().toLowerCase().trim();
   const all = getFamilyData();
@@ -93,15 +93,22 @@ function searchMembers(query) {
 
   const matches = q ? all.filter(m => searchableName_(m).includes(q)) : all;
 
+  const nameSet_ = (m) => ({
+    en: `${m.EnglishFirstName || ''} ${m.EnglishLastName || ''}`.trim(),
+    lo: `${m.LaoFirstName || ''} ${m.LaoLastName || ''}`.trim(),
+    hmn: `${m.HmongFirstName || ''} ${m.HmongLastName || ''}`.trim()
+  });
+
   return matches.slice(0, 25).map(m => {
     const father = byId[m.FatherID];
     const mother = byId[m.MotherID];
     return {
       id: m.ID,
-      name: displayName_(m),
+      name: displayName_(m), // kept for any older caller that just wants a single fallback string
+      names: nameSet_(m),
+      fatherNames: father ? nameSet_(father) : null,
+      motherNames: mother ? nameSet_(mother) : null,
       birthYear: m.BirthDate ? new Date(m.BirthDate).getFullYear() : '',
-      fatherName: father ? displayName_(father) : '',
-      motherName: mother ? displayName_(mother) : '',
       country: m.Country || '',
       province: m.Province || '',
       city: m.City || '',
