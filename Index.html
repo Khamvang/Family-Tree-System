@@ -208,11 +208,12 @@
             </div>
 
             <label for="SpouseSearch" data-i18n="spouse_label">Spouse</label>
+            <p class="hint" data-i18n="spouse_hint">Add as many as needed — each appears as a removable chip below.</p>
+            <div id="spouseChips" class="chip-list"></div>
             <div class="autocomplete-wrap">
               <input type="text" id="SpouseSearch" autocomplete="off" data-i18n-placeholder="relation_placeholder" placeholder="Search or type new name...">
               <div class="autocomplete-list" id="SpouseList"></div>
             </div>
-            <input type="hidden" id="SpouseID">
 
             <label for="Notes" data-i18n="notes_label">Notes</label>
             <textarea id="Notes"></textarea>
@@ -249,6 +250,11 @@
           <h1 data-i18n="guide_h1">📖 Guideline</h1>
           <p class="hint" data-i18n="guide_intro">Click any question below to show or hide its answer.</p>
 
+          <div class="autocomplete-wrap" style="max-width:420px;">
+            <input type="text" id="guideSearchBox" autocomplete="off" data-i18n-placeholder="guide_search_placeholder" placeholder="Search the guide...">
+            <div class="autocomplete-list" id="guideSearchList"></div>
+          </div>
+
           <div class="accordion" id="guideAccordion"></div>
         </div>
       </section>
@@ -269,11 +275,20 @@
     <img id="imageLightboxImg" src="" alt="Photo">
   </div>
 
+  <input type="file" id="treeAvatarFileInput" accept="image/*" style="display:none;">
+
+  <div class="avatar-menu" id="avatarMenu">
+    <button type="button" onclick="avatarMenuView()">👁️ <span data-i18n="avatar_menu_view">View photo</span></button>
+    <button type="button" onclick="avatarMenuChange()">🔄 <span data-i18n="avatar_menu_change">Change photo</span></button>
+  </div>
+
   <script>
     // =========================================================
     // Sidebar navigation
     // =========================================================
     let treeInitialized = false;
+    let cameFromTree = false; // set true when the form was opened from the tree (add child, or edit), so save returns there
+    let pendingFocusIdAfterTreeLoad = null; // the newly-created member to jump to once the tree finishes loading
 
     // =========================================================
     // Internationalization (English / Lao / Hmong)
@@ -289,27 +304,43 @@
         tooltip_unfocus: 'Click to show the full tree again',
         tooltip_focus: 'Click to focus on just this person\'s parents, spouse, and children',
         tooltip_view_photo: 'Click to view this photo larger',
+        tooltip_avatar_options: 'Click to view or change this photo',
+        tooltip_add_photo: 'Click to add a photo',
+        avatar_menu_view: 'View photo',
+        avatar_menu_change: 'Change photo',
+        toast_uploading_photo: 'Uploading photo...',
+        tooltip_add_child: 'Click to add a new child for this person',
+        tooltip_show_spouse: 'Click to reveal this person\'s spouse',
+        tooltip_hide_spouse: 'Click to hide this person\'s spouse again',
+        toast_quick_add_child: 'Adding a new child for {name} — fill in the details below and save.',
         guide_h1: '📖 Guideline', guide_intro: 'Click any question below to show or hide its answer.',
+        guide_search_placeholder: 'Search the guide...',
         guide_q1: 'How do I add a new family member?',
-        guide_a1: 'Go to "Add / Edit Member", leave the search box at the top empty, fill in whatever names you know (at least one first or last name in any language), and click Save Member.',
+        guide_a1: '<ol><li>Go to "Add / Edit Member" in the sidebar.</li><li>Leave the search box at the top empty — that\'s only for finding someone who already exists.</li><li>Fill in whatever names you know, in any language (at least one first or last name).</li><li>Click Save Member.</li></ol>',
         guide_q2: 'How do I edit an existing member?',
-        guide_a2: 'Type their name into "Find an existing member to edit" at the top of the form, select them from the list that appears, update any fields, then click Save Member.',
-        guide_q3: 'How do I add a profile photo or house photos?',
-        guide_a3: 'The person needs to already be saved first (so search for them if they\'re new). Then click, drag a photo onto, or paste (Ctrl+V) an image into the profile circle or the house photos box — it uploads automatically.',
-        guide_q4: 'How does the Country / Province / City / Village address work?',
-        guide_a4: 'Pick Country first. If it\'s Laos, Province, City, and Village become searchable dropdowns pulled from your address list; other countries can be typed freely. Each field only unlocks after the one before it is filled in.',
-        guide_q5: 'How do I read the Family Tree?',
-        guide_a5: 'Each box shows a person\'s name, birth/death years, and gender. Click the name to edit that person. The small "+" at the bottom expands their children; the "+" at the top reveals their parents and siblings together. Hover over any name, button, or box for a moment to see a tooltip explaining exactly what clicking it will do.',
-        guide_q9: 'How do I search for someone in the Family Tree?',
-        guide_a9: 'Type a name into the search box in the tree toolbar. Pick someone from the dropdown (it also shows their birth year, parents, and address, to help tell apart people who share a name) — the tree expands automatically if needed and switches straight to a focused view of just their immediate family.',
-        guide_q10: 'How do I remove a photo or house file I uploaded by mistake?',
-        guide_a10: 'Hover over the photo or file thumbnail and click the small red "×" that appears in its corner. This removes it from the record and sends the file to Drive\'s trash.',
-        guide_q6: 'What happens if I click the box itself (not the name or the +)?',
-        guide_a6: 'It focuses the tree on just that person\'s parents, spouse, and children, rearranged into a compact view — handy for printing. Click the same box again to return to the full tree.',
-        guide_q7: 'How do I print the tree?',
-        guide_a7: 'Click the Print button in the tree toolbar. For a cleaner printout, focus on one family first (click their box) before printing.',
-        guide_q8: 'How do I switch language?',
-        guide_a8: 'Use the EN / ລາວ / Hmoob buttons fixed at the top-right of the page. It switches instantly without losing your place.',
+        guide_a2: '<ol><li>Type their name into "Find an existing member to edit" at the top of the form.</li><li>Select them from the list that appears.</li><li>Update any fields you want to change.</li><li>Click Save Member.</li></ol>',
+        guide_q3: 'How do I add or change someone\'s profile photo?',
+        guide_a3: '<ol><li>The person needs to already be saved first — search for them if they\'re new.</li><li>On the form, click, drag a photo onto, or paste (Ctrl+V) an image into the profile circle.</li><li>You can also do this straight from the <a href="#" data-guide-jump="6">Family Tree</a>: click a person\'s small photo circle — if they don\'t have one yet, it opens your camera/photo picker right away; if they already have one, a small menu offers "View photo" or "Change photo".</li></ol>',
+        guide_q4: 'How do I remove a photo or house file I uploaded by mistake?',
+        guide_a4: 'Hover over the photo or file thumbnail and click the small red "×" that appears in its corner. This removes it from the record and sends the file to Drive\'s trash.',
+        guide_q5: 'How does the Country / Province / City / Village address work?',
+        guide_a5: '<ol><li>Pick Country first.</li><li>If it\'s Laos, Province, City, and Village become searchable dropdowns pulled from your address list.</li><li>Other countries can be typed freely.</li></ol>Each field only unlocks once the one before it is filled in.',
+        guide_q11: 'How do I add more than one spouse for a person?',
+        guide_a11: '<ol><li>Open that person in <a href="#" data-guide-jump="0">Add / Edit Member</a>.</li><li>In the Spouse field, search for (or add as new) the first spouse — they appear as a small removable chip.</li><li>Repeat to add a second, third spouse, and so on — each gets its own chip.</li><li>Click Save Member.</li></ol>The Family Tree will draw a line to every spouse you\'ve added.',
+        guide_q6: 'How do I read the Family Tree?',
+        guide_a6: 'Each box shows a person\'s name, birth/death years, and gender.<ul><li>Click the <b>name</b> to edit that person.</li><li>The small "+" at the <b>bottom</b> expands their children.</li><li>The "+" at the <b>top</b> reveals their parents and siblings together.</li><li>The blue "+" on the <b>middle-right</b> reveals a spouse — see <a href="#" data-guide-jump="10">this topic</a> for when that\'s useful.</li></ul>Hover over any name, button, or box for a moment to see a tooltip explaining exactly what clicking it will do.',
+        guide_q7: 'How do I search for someone in the Family Tree?',
+        guide_a7: '<ol><li>Type a name into the search box in the tree toolbar.</li><li>Pick someone from the dropdown — it also shows their birth year, parents, and address, to help tell apart people who share a name.</li></ol>The tree expands automatically if needed and switches straight to a focused view of just their immediate family (see <a href="#" data-guide-jump="8">"What happens if I click the box itself?"</a>).',
+        guide_q8: 'What happens if I click the box itself (not the name or a "+")?',
+        guide_a8: 'It focuses the tree on just that person\'s parents, spouse, and children, rearranged into a compact view — handy for <a href="#" data-guide-jump="11">printing</a>. Click the same box again to return to the full tree.',
+        guide_q9: 'How do I quickly add a child directly from the tree?',
+        guide_a9: '<ol><li>Click the 👶 button in the bottom-right corner of a person\'s box.</li><li>The Add Member form opens with their Father (or Mother, based on gender) already filled in.</li><li>Type in the new child\'s details and click Save Member.</li><li>You\'re brought straight back to the Family Tree with the new child visible — your view doesn\'t jump or reset.</li></ol>',
+        guide_q12: 'How do I see someone\'s spouse if they don\'t have children yet?',
+        guide_a12: 'Click the blue "+" on the middle-right edge of their box. This works even with no children to expand — it\'s the only way to reveal a spouse for someone who doesn\'t have kids recorded yet. See <a href="#" data-guide-jump="6">"How do I read the Family Tree?"</a> for the other buttons on each box.',
+        guide_q10: 'How do I print the tree?',
+        guide_a10: '<ol><li>Click the Print button in the tree toolbar.</li><li>For a cleaner printout, <a href="#" data-guide-jump="8">focus on one family first</a> (click their box) before printing.</li></ol>',
+        guide_q13: 'How do I switch language?',
+        guide_a13: 'Use the EN / ລາວ / Hmoob buttons fixed at the top-right of the page. It switches instantly without losing your place — even names shown in search results update to match, when available in that language.',
         form_h1: 'Add / Edit Member',
         find_label: 'Find an existing member to edit (leave blank to add someone new)',
         find_placeholder: 'Start typing a name...',
@@ -335,6 +366,7 @@
         relationships_h3: 'Relationships',
         relationships_hint: 'Pick from existing members, or type a new name and choose "Add as new person".',
         father_label: 'Father', mother_label: 'Mother', spouse_label: 'Spouse',
+        spouse_hint: 'Add as many as needed — each appears as a removable chip below.',
         relation_placeholder: 'Search or type new name...',
         notes_label: 'Notes', save_btn: '💾 Save Member', clear_btn: 'Clear Form',
         tree_title: 'Family Tree', tree_search_placeholder: 'Search a name...',
@@ -366,27 +398,43 @@
         tooltip_unfocus: 'ກົດເພື່ອສະແດງຕົ້ນໄມ້ທັງໝົດອີກຄັ້ງ',
         tooltip_focus: 'ກົດເພື່ອສະແດງສະເພາະພໍ່ແມ່, ຄູ່ສົມລົດ, ແລະ ລູກຂອງຄົນນີ້',
         tooltip_view_photo: 'ກົດເພື່ອເບິ່ງຮູບນີ້ໃຫ້ໃຫຍ່ຂຶ້ນ',
+        tooltip_avatar_options: 'ກົດເພື່ອເບິ່ງ ຫຼື ປ່ຽນຮູບນີ້',
+        tooltip_add_photo: 'ກົດເພື່ອເພີ່ມຮູບ',
+        avatar_menu_view: 'ເບິ່ງຮູບ',
+        avatar_menu_change: 'ປ່ຽນຮູບ',
+        toast_uploading_photo: 'ກຳລັງອັບໂຫລດຮູບ...',
+        tooltip_add_child: 'ກົດເພື່ອເພີ່ມລູກໃໝ່ໃຫ້ຄົນນີ້',
+        tooltip_show_spouse: 'ກົດເພື່ອສະແດງຄູ່ສົມລົດຂອງຄົນນີ້',
+        tooltip_hide_spouse: 'ກົດເພື່ອເຊື່ອງຄູ່ສົມລົດຂອງຄົນນີ້ອີກຄັ້ງ',
+        toast_quick_add_child: 'ກຳລັງເພີ່ມລູກໃໝ່ໃຫ້ {name} — ໃສ່ຂໍ້ມູນລຸ່ມນີ້ແລ້ວບັນທຶກ.',
         guide_h1: '📖 ຄູ່ມືການນຳໃຊ້', guide_intro: 'ກົດຄຳຖາມລຸ່ມນີ້ເພື່ອສະແດງ ຫຼື ເຊື່ອງຄຳຕອບ.',
+        guide_search_placeholder: 'ຄົ້ນຫາໃນຄູ່ມື...',
         guide_q1: 'ຂ້ອຍຈະເພີ່ມສະມາຊິກໃໝ່ແນວໃດ?',
-        guide_a1: 'ໄປທີ່ "ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ", ປະຊ່ອງຄົ້ນຫາໄວ້ຫວ່າງ, ໃສ່ຊື່ທີ່ທ່ານຮູ້ (ຢ່າງໜ້ອຍໜຶ່ງຊື່ພາສາໃດກໍ່ໄດ້), ແລ້ວກົດບັນທຶກສະມາຊິກ.',
+        guide_a1: '<ol><li>ໄປທີ່ "ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ" ຢູ່ແຖບເມນູ.</li><li>ປະຊ່ອງຄົ້ນຫາຢູ່ເທິງສຸດໄວ້ຫວ່າງ — ຊ່ອງນັ້ນໃຊ້ສະເພາະຄົ້ນຫາຄົນທີ່ມີຢູ່ແລ້ວ.</li><li>ໃສ່ຊື່ທີ່ທ່ານຮູ້ ພາສາໃດກໍ່ໄດ້ (ຢ່າງໜ້ອຍໜຶ່ງຊື່).</li><li>ກົດບັນທຶກສະມາຊິກ.</li></ol>',
         guide_q2: 'ຂ້ອຍຈະແກ້ໄຂສະມາຊິກທີ່ມີຢູ່ແລ້ວແນວໃດ?',
-        guide_a2: 'ພິມຊື່ໃສ່ຊ່ອງ "ຄົ້ນຫາສະມາຊິກທີ່ມີຢູ່ແລ້ວເພື່ອແກ້ໄຂ" ຢູ່ເທິງສຸດ, ເລືອກຄົນຈາກລາຍການທີ່ປາກົດຂຶ້ນ, ແກ້ໄຂຂໍ້ມູນຕາມຕ້ອງການ, ແລ້ວກົດບັນທຶກສະມາຊິກ.',
-        guide_q3: 'ຂ້ອຍຈະເພີ່ມຮູບໂປຣໄຟລ໌ ຫຼື ຮູບເຮືອນແນວໃດ?',
-        guide_a3: 'ຕ້ອງບັນທຶກຄົນນັ້ນກ່ອນ (ຄົ້ນຫາລາວຖ້າເປັນຄົນໃໝ່). ຈາກນັ້ນກົດ, ລາກຮູບໃສ່, ຫຼືວາງ (Ctrl+V) ຮູບພາບໃສ່ວົງມົນໂປຣໄຟລ໌ ຫຼື ຊ່ອງຮູບເຮືອນ — ມັນຈະອັບໂຫລດອັດຕະໂນມັດ.',
-        guide_q4: 'ຊ່ອງທີ່ຢູ່ ປະເທດ / ແຂວງ / ເມືອງ / ບ້ານ ເຮັດວຽກແນວໃດ?',
-        guide_a4: 'ເລືອກປະເທດກ່ອນ. ຖ້າເປັນລາວ, ແຂວງ, ເມືອງ, ແລະ ບ້ານ ຈະກາຍເປັນລາຍການໃຫ້ຄົ້ນຫາຈາກຂໍ້ມູນທີ່ຢູ່ຂອງທ່ານ; ປະເທດອື່ນສາມາດພິມເອງໄດ້. ແຕ່ລະຊ່ອງຈະເປີດໃຊ້ໄດ້ພຽງແຕ່ຫຼັງຈາກຊ່ອງກ່ອນໜ້າຖືກໃສ່ຂໍ້ມູນແລ້ວ.',
-        guide_q5: 'ຂ້ອຍຈະອ່ານຕົ້ນຄອບຄົວແນວໃດ?',
-        guide_a5: 'ແຕ່ລະກ່ອງສະແດງຊື່, ປີເກີດ/ປີເສຍຊີວິດ, ແລະ ເພດ. ກົດຊື່ເພື່ອແກ້ໄຂຄົນນັ້ນ. ເຄື່ອງໝາຍ "+" ນ້ອຍລຸ່ມສຸດຂະຫຍາຍລູກ; "+" ເທິງສຸດສະແດງພໍ່ແມ່ ແລະ ອ້າຍນ້ອງພ້ອມກັນ. ວາງເມົາສ໌ໄວ້ເທິງຊື່, ປຸ່ມ, ຫຼື ກ່ອງໃດໜຶ່ງບຶດໜຶ່ງເພື່ອເບິ່ງຄຳອະທິບາຍວ່າກົດແລ້ວຈະເກີດຫຍັງຂຶ້ນ.',
-        guide_q9: 'ຂ້ອຍຈະຄົ້ນຫາຄົນໃນຕົ້ນຄອບຄົວແນວໃດ?',
-        guide_a9: 'ພິມຊື່ໃສ່ຊ່ອງຄົ້ນຫາຢູ່ແຖບເຄື່ອງມືຂອງຕົ້ນໄມ້. ເລືອກຄົນຈາກລາຍການທີ່ປາກົດຂຶ້ນ (ຍັງສະແດງປີເກີດ, ພໍ່ແມ່, ແລະ ທີ່ຢູ່ ເພື່ອຊ່ວຍແຍກແຍະຄົນທີ່ມີຊື່ຄືກັນ) — ຕົ້ນໄມ້ຈະຂະຫຍາຍອັດຕະໂນມັດຖ້າຈຳເປັນ ແລະ ສະຫຼັບໄປສະແດງສະເພາະຄອບຄົວໃກ້ຊິດຂອງຄົນນັ້ນທັນທີ.',
-        guide_q10: 'ຂ້ອຍຈະລຶບຮູບ ຫຼື ໄຟລ໌ເຮືອນທີ່ອັບໂຫລດຜິດແນວໃດ?',
-        guide_a10: 'ວາງເມົາສ໌ໄວ້ເທິງຮູບຕົວຢ່າງ ຫຼື ໄຟລ໌ນັ້ນ ແລ້ວກົດເຄື່ອງໝາຍ "×" ສີແດງນ້ອຍທີ່ປາກົດຢູ່ມຸມຂອງມັນ. ນີ້ຈະລຶບມັນອອກຈາກຂໍ້ມູນ ແລະ ສົ່ງໄຟລ໌ໄປຖັງຂີ້ເຫຍື້ອຂອງ Drive.',
-        guide_q6: 'ຈະເກີດຫຍັງຂຶ້ນຖ້າກົດໃສ່ໂຕກ່ອງເອງ (ບໍ່ແມ່ນຊື່ ຫຼື "+")?',
-        guide_a6: 'ມັນຈະສະແດງສະເພາະພໍ່ແມ່, ຄູ່ສົມລົດ, ແລະ ລູກຂອງຄົນນັ້ນ, ຈັດແຈງເປັນມຸມມອງກະທັດຮັດ — ເໝາະສຳລັບພິມ. ກົດໂຕກ່ອງດຽວກັນອີກຄັ້ງເພື່ອກັບຄືນສູ່ຕົ້ນໄມ້ທັງໝົດ.',
-        guide_q7: 'ຂ້ອຍຈະພິມຕົ້ນຄອບຄົວແນວໃດ?',
-        guide_a7: 'ກົດປຸ່ມພິມຢູ່ແຖບເຄື່ອງມືຂອງຕົ້ນໄມ້. ເພື່ອໃຫ້ພິມອອກມາສວຍງາມກວ່າ, ໃຫ້ໂຟກັດໃສ່ຄອບຄົວດຽວກ່ອນ (ກົດໂຕກ່ອງຂອງເຂົາ) ກ່ອນພິມ.',
-        guide_q8: 'ຂ້ອຍຈະປ່ຽນພາສາແນວໃດ?',
-        guide_a8: 'ໃຊ້ປຸ່ມ EN / ລາວ / Hmoob ທີ່ຄ້າງຢູ່ມຸມເທິງຂວາຂອງໜ້າ. ມັນປ່ຽນທັນທີໂດຍບໍ່ເສຍຕຳແໜ່ງທີ່ທ່ານກຳລັງເບິ່ງຢູ່.',
+        guide_a2: '<ol><li>ພິມຊື່ໃສ່ຊ່ອງ "ຄົ້ນຫາສະມາຊິກທີ່ມີຢູ່ແລ້ວເພື່ອແກ້ໄຂ" ຢູ່ເທິງສຸດ.</li><li>ເລືອກຄົນຈາກລາຍການທີ່ປາກົດຂຶ້ນ.</li><li>ແກ້ໄຂຂໍ້ມູນຕາມຕ້ອງການ.</li><li>ກົດບັນທຶກສະມາຊິກ.</li></ol>',
+        guide_q3: 'ຂ້ອຍຈະເພີ່ມ ຫຼື ປ່ຽນຮູບໂປຣໄຟລ໌ຂອງຄົນໃດໜຶ່ງແນວໃດ?',
+        guide_a3: '<ol><li>ຕ້ອງບັນທຶກຄົນນັ້ນກ່ອນ — ຄົ້ນຫາລາວຖ້າເປັນຄົນໃໝ່.</li><li>ໃນຟອມ, ກົດ, ລາກຮູບໃສ່, ຫຼືວາງ (Ctrl+V) ຮູບພາບໃສ່ວົງມົນໂປຣໄຟລ໌.</li><li>ທ່ານຍັງເຮັດໄດ້ຈາກ <a href="#" data-guide-jump="6">ຕົ້ນຄອບຄົວ</a> ໂດຍກົງ: ກົດວົງມົນຮູບຂອງຄົນນັ້ນ — ຖ້າຍັງບໍ່ມີຮູບ ມັນຈະເປີດກ້ອງ/ຄັງຮູບທັນທີ; ຖ້າມີຮູບແລ້ວ ຈະມີເມນູນ້ອຍໃຫ້ເລືອກ "ເບິ່ງຮູບ" ຫຼື "ປ່ຽນຮູບ".</li></ol>',
+        guide_q4: 'ຂ້ອຍຈະລຶບຮູບ ຫຼື ໄຟລ໌ເຮືອນທີ່ອັບໂຫລດຜິດແນວໃດ?',
+        guide_a4: 'ວາງເມົາສ໌ໄວ້ເທິງຮູບຕົວຢ່າງ ຫຼື ໄຟລ໌ນັ້ນ ແລ້ວກົດເຄື່ອງໝາຍ "×" ສີແດງນ້ອຍທີ່ປາກົດຢູ່ມຸມຂອງມັນ. ນີ້ຈະລຶບມັນອອກຈາກຂໍ້ມູນ ແລະ ສົ່ງໄຟລ໌ໄປຖັງຂີ້ເຫຍື້ອຂອງ Drive.',
+        guide_q5: 'ຊ່ອງທີ່ຢູ່ ປະເທດ / ແຂວງ / ເມືອງ / ບ້ານ ເຮັດວຽກແນວໃດ?',
+        guide_a5: '<ol><li>ເລືອກປະເທດກ່ອນ.</li><li>ຖ້າເປັນລາວ, ແຂວງ, ເມືອງ, ແລະ ບ້ານ ຈະກາຍເປັນລາຍການໃຫ້ຄົ້ນຫາຈາກຂໍ້ມູນທີ່ຢູ່ຂອງທ່ານ.</li><li>ປະເທດອື່ນສາມາດພິມເອງໄດ້.</li></ol>ແຕ່ລະຊ່ອງຈະເປີດໃຊ້ໄດ້ພຽງແຕ່ຫຼັງຈາກຊ່ອງກ່ອນໜ້າຖືກໃສ່ຂໍ້ມູນແລ້ວ.',
+        guide_q11: 'ຂ້ອຍຈະເພີ່ມຄູ່ສົມລົດຫຼາຍກວ່າໜຶ່ງຄົນໃຫ້ຄົນໃດໜຶ່ງແນວໃດ?',
+        guide_a11: '<ol><li>ເປີດຄົນນັ້ນຢູ່ <a href="#" data-guide-jump="0">ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ</a>.</li><li>ໃນຊ່ອງຄູ່ສົມລົດ, ຄົ້ນຫາ (ຫຼືເພີ່ມເປັນຄົນໃໝ່) ຄູ່ສົມລົດຄົນທໍາອິດ — ຈະປາກົດເປັນປ້າຍນ້ອຍທີ່ລຶບໄດ້.</li><li>ເຮັດຄືນເພື່ອເພີ່ມຄົນທີ 2, ທີ 3, ແລະ ອື່ນໆ — ແຕ່ລະຄົນຈະໄດ້ປ້າຍຂອງຕົນເອງ.</li><li>ກົດບັນທຶກສະມາຊິກ.</li></ol>ຕົ້ນຄອບຄົວຈະແຕ້ມສາຍໄປຫາຄູ່ສົມລົດທຸກຄົນທີ່ທ່ານເພີ່ມ.',
+        guide_q6: 'ຂ້ອຍຈະອ່ານຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a6: 'ແຕ່ລະກ່ອງສະແດງຊື່, ປີເກີດ/ປີເສຍຊີວິດ, ແລະ ເພດ.<ul><li>ກົດ <b>ຊື່</b> ເພື່ອແກ້ໄຂຄົນນັ້ນ.</li><li>ເຄື່ອງໝາຍ "+" ນ້ອຍ <b>ລຸ່ມສຸດ</b> ຂະຫຍາຍລູກ.</li><li>"+" <b>ເທິງສຸດ</b> ສະແດງພໍ່ແມ່ ແລະ ອ້າຍນ້ອງພ້ອມກັນ.</li><li>"+" ສີຟ້າ <b>ກາງຂວາ</b> ສະແດງຄູ່ສົມລົດ — ເບິ່ງ <a href="#" data-guide-jump="10">ຫົວຂໍ້ນີ້</a> ວ່າໃຊ້ເມື່ອໃດ.</li></ul>ວາງເມົາສ໌ໄວ້ເທິງຊື່, ປຸ່ມ, ຫຼື ກ່ອງໃດໜຶ່ງບຶດໜຶ່ງເພື່ອເບິ່ງຄຳອະທິບາຍວ່າກົດແລ້ວຈະເກີດຫຍັງຂຶ້ນ.',
+        guide_q7: 'ຂ້ອຍຈະຄົ້ນຫາຄົນໃນຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a7: '<ol><li>ພິມຊື່ໃສ່ຊ່ອງຄົ້ນຫາຢູ່ແຖບເຄື່ອງມືຂອງຕົ້ນໄມ້.</li><li>ເລືອກຄົນຈາກລາຍການທີ່ປາກົດຂຶ້ນ — ຍັງສະແດງປີເກີດ, ພໍ່ແມ່, ແລະ ທີ່ຢູ່ ເພື່ອຊ່ວຍແຍກແຍະຄົນທີ່ມີຊື່ຄືກັນ.</li></ol>ຕົ້ນໄມ້ຈະຂະຫຍາຍອັດຕະໂນມັດຖ້າຈຳເປັນ ແລະ ສະຫຼັບໄປສະແດງສະເພາະຄອບຄົວໃກ້ຊິດຂອງຄົນນັ້ນທັນທີ (ເບິ່ງ <a href="#" data-guide-jump="8">"ຈະເກີດຫຍັງຂຶ້ນຖ້າກົດໃສ່ໂຕກ່ອງເອງ?"</a>).',
+        guide_q8: 'ຈະເກີດຫຍັງຂຶ້ນຖ້າກົດໃສ່ໂຕກ່ອງເອງ (ບໍ່ແມ່ນຊື່ ຫຼື "+")?',
+        guide_a8: 'ມັນຈະສະແດງສະເພາະພໍ່ແມ່, ຄູ່ສົມລົດ, ແລະ ລູກຂອງຄົນນັ້ນ, ຈັດແຈງເປັນມຸມມອງກະທັດຮັດ — ເໝາະສຳລັບ<a href="#" data-guide-jump="11">ການພິມ</a>. ກົດໂຕກ່ອງດຽວກັນອີກຄັ້ງເພື່ອກັບຄືນສູ່ຕົ້ນໄມ້ທັງໝົດ.',
+        guide_q9: 'ຂ້ອຍຈະເພີ່ມລູກໄດ້ໄວໆຈາກຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a9: '<ol><li>ກົດປຸ່ມ 👶 ຢູ່ມຸມລຸ່ມຂວາຂອງກ່ອງຄົນນັ້ນ.</li><li>ຟອມເພີ່ມສະມາຊິກຈະເປີດຂຶ້ນ ໂດຍມີພໍ່ (ຫຼືແມ່, ຕາມເພດ) ຖືກໃສ່ໄວ້ໃຫ້ແລ້ວ.</li><li>ໃສ່ຂໍ້ມູນລູກຄົນໃໝ່ ແລ້ວກົດບັນທຶກສະມາຊິກ.</li><li>ທ່ານຈະຖືກນຳກັບໄປສູ່ຕົ້ນຄອບຄົວທັນທີ ໂດຍເຫັນລູກຄົນໃໝ່ — ມຸມມອງຂອງທ່ານຈະບໍ່ກະໂດດ ຫຼື ຣີເຊັດ.</li></ol>',
+        guide_q12: 'ຂ້ອຍຈະເບິ່ງຄູ່ສົມລົດຂອງຄົນທີ່ຍັງບໍ່ມີລູກແນວໃດ?',
+        guide_a12: 'ກົດເຄື່ອງໝາຍ "+" ສີຟ້າຢູ່ຂອບກາງຂວາຂອງກ່ອງເຂົາ. ອັນນີ້ໃຊ້ໄດ້ເຖິງແມ່ນຈະບໍ່ມີລູກໃຫ້ຂະຫຍາຍ — ເປັນວິທີດຽວທີ່ຈະສະແດງຄູ່ສົມລົດຂອງຄົນທີ່ຍັງບໍ່ມີລູກບັນທຶກໄວ້. ເບິ່ງ <a href="#" data-guide-jump="6">"ຂ້ອຍຈະອ່ານຕົ້ນຄອບຄົວແນວໃດ?"</a> ສຳລັບປຸ່ມອື່ນໆຢູ່ໃນກ່ອງ.',
+        guide_q10: 'ຂ້ອຍຈະພິມຕົ້ນຄອບຄົວແນວໃດ?',
+        guide_a10: '<ol><li>ກົດປຸ່ມພິມຢູ່ແຖບເຄື່ອງມືຂອງຕົ້ນໄມ້.</li><li>ເພື່ອໃຫ້ພິມອອກມາສວຍງາມກວ່າ, <a href="#" data-guide-jump="8">ໃຫ້ໂຟກັດໃສ່ຄອບຄົວດຽວກ່ອນ</a> (ກົດໂຕກ່ອງຂອງເຂົາ) ກ່ອນພິມ.</li></ol>',
+        guide_q13: 'ຂ້ອຍຈະປ່ຽນພາສາແນວໃດ?',
+        guide_a13: 'ໃຊ້ປຸ່ມ EN / ລາວ / Hmoob ທີ່ຄ້າງຢູ່ມຸມເທິງຂວາຂອງໜ້າ. ມັນປ່ຽນທັນທີໂດຍບໍ່ເສຍຕຳແໜ່ງທີ່ທ່ານກຳລັງເບິ່ງຢູ່ — ເຖິງແມ່ນຊື່ທີ່ສະແດງໃນຜົນຄົ້ນຫາກໍ່ຈະປ່ຽນຕາມ ຖ້າມີຂໍ້ມູນພາສານັ້ນ.',
         form_h1: 'ເພີ່ມ / ແກ້ໄຂ ສະມາຊິກ',
         find_label: 'ຄົ້ນຫາສະມາຊິກທີ່ມີຢູ່ແລ້ວເພື່ອແກ້ໄຂ (ປະໄວ້ຫວ່າງເພື່ອເພີ່ມຄົນໃໝ່)',
         find_placeholder: 'ພິມຊື່ເພື່ອຄົ້ນຫາ...',
@@ -412,6 +460,7 @@
         relationships_h3: 'ຄວາມສຳພັນ',
         relationships_hint: 'ເລືອກຈາກສະມາຊິກທີ່ມີຢູ່ແລ້ວ, ຫຼືພິມຊື່ໃໝ່ແລ້ວເລືອກ "ເພີ່ມເປັນຄົນໃໝ່".',
         father_label: 'ພໍ່', mother_label: 'ແມ່', spouse_label: 'ຄູ່ສົມລົດ',
+        spouse_hint: 'ເພີ່ມໄດ້ຫຼາຍຄົນຕາມຕ້ອງການ — ແຕ່ລະຄົນຈະສະແດງເປັນປ້າຍນ້ອຍທີ່ລຶບໄດ້ຢູ່ລຸ່ມນີ້.',
         relation_placeholder: 'ຄົ້ນຫາ ຫຼື ພິມຊື່ໃໝ່...',
         notes_label: 'ບັນທຶກ', save_btn: '💾 ບັນທຶກສະມາຊິກ', clear_btn: 'ລ້າງແບບຟອມ',
         tree_title: 'ຕົ້ນຄອບຄົວ', tree_search_placeholder: 'ຄົ້ນຫາຊື່...',
@@ -443,27 +492,43 @@
         tooltip_unfocus: 'Nyem kom rov qhia tag nrho tsob ntoo',
         tooltip_focus: 'Nyem kom saib tsuas yog tus neeg no cov niam txiv, poj/txiv, thiab menyuam xwb',
         tooltip_view_photo: 'Nyem kom saib daim duab no loj dua',
+        tooltip_avatar_options: 'Nyem kom saib lossis hloov daim duab no',
+        tooltip_add_photo: 'Nyem kom ntxiv ib daim duab',
+        avatar_menu_view: 'Saib daim duab',
+        avatar_menu_change: 'Hloov daim duab',
+        toast_uploading_photo: 'Tab tom upload daim duab...',
+        tooltip_add_child: 'Nyem kom ntxiv ib tug menyuam tshiab rau tus neeg no',
+        tooltip_show_spouse: 'Nyem kom qhia tus neeg no tus poj/txiv',
+        tooltip_hide_spouse: 'Nyem kom zais tus neeg no tus poj/txiv dua',
+        toast_quick_add_child: 'Tab tom ntxiv ib tug menyuam tshiab rau {name} — sau cov ntaub ntawv hauv qab no ces khaws cia.',
         guide_h1: '📖 Lus Qhia Siv', guide_intro: 'Nyem rau ib nqe lus nug hauv qab no kom qhia lossis zais nws cov lus teb.',
+        guide_search_placeholder: 'Nrhiav hauv phau ntawv qhia...',
         guide_q1: 'Kuv yuav ntxiv ib tug tswv cuab tshiab li cas?',
-        guide_a1: 'Mus rau "Ntxiv / Kho Tswv Cuab", tso lub qhov nrhiav saum toj no cia dawb, sau cov npe uas koj paub (yuav tsum muaj tsawg kawg ib lub npe lossis nplooj npe ntawm ib hom lus), thiab nyem Khaws Cia Tus Tswv Cuab.',
+        guide_a1: '<ol><li>Mus rau "Ntxiv / Kho Tswv Cuab" ntawm phab ntsa qhia kev.</li><li>Tso lub qhov nrhiav saum toj no cia dawb — qhov ntawd tsuas yog rau nrhiav tus uas twb muaj lawm.</li><li>Sau cov npe uas koj paub, ntawm ib hom lus twg los tau (yuav tsum muaj tsawg kawg ib lub npe).</li><li>Nyem Khaws Cia Tus Tswv Cuab.</li></ol>',
         guide_q2: 'Kuv yuav kho ib tug tswv cuab uas twb muaj lawm li cas?',
-        guide_a2: 'Ntaus nws lub npe rau hauv "Nrhiav ib tug tswv cuab uas twb muaj lawm los kho" saum toj ntawm daim ntawv, xaiv nws ntawm cov npe tshwm sim, kho cov ntaub ntawv raws li koj xav tau, ces nyem Khaws Cia Tus Tswv Cuab.',
-        guide_q3: 'Kuv yuav ntxiv ib daim duab profile lossis duab tsev li cas?',
-        guide_a3: 'Tus neeg ntawd yuav tsum khaws cia ua ntej (nrhiav nws yog tseem tshiab). Ces nyem, rub ib daim duab los tso, lossis luam (Ctrl+V) ib daim duab rau hauv lub voj profile lossis qhov duab tsev — nws yuav upload nws tus kheej.',
-        guide_q4: 'Chaw Nyob Teb Chaws / Xeev / Nroog / Zos ua hauj lwm li cas?',
-        guide_a4: 'Xaiv Teb Chaws ua ntej. Yog Los, Xeev, Nroog, thiab Zos yuav dhau los ua cov npe nrhiav tau ntawm koj cov ntaub ntawv chaw nyob; lwm lub tebchaws sau tau ncaj qha. Txhua qhov yuav qhib tau tom qab qhov ua ntej sau tas lawm xwb.',
-        guide_q5: 'Kuv yuav nyeem Tsob Ntoo Tsev Neeg li cas?',
-        guide_a5: 'Txhua lub thawv qhia tus neeg lub npe, xyoo yug/tuag, thiab poj txiv. Nyem lub npe kom kho tus neeg ntawd. Lub "+" me me hauv qab nthuav nws cov menyuam; lub "+" saum toj qhia nws niam txiv thiab cov kwvtij ua ke. Ntsiag ntsiag tso koj lub cursor rau saum ib lub npe, pob, lossis thawv twg kom pom cov lus qhia hais tias nyem yuav ua li cas.',
-        guide_q9: 'Kuv yuav nrhiav ib tug neeg hauv Tsob Ntoo Tsev Neeg li cas?',
-        guide_a9: 'Ntaus ib lub npe rau hauv qhov nrhiav ntawm tsob ntoo cov cuab yeej. Xaiv ib tug neeg ntawm cov npe tshwm sim (nws tseem qhia lawv xyoo yug, niam txiv, thiab chaw nyob, kom pab txheeb seb leej twg thaum ob tug muaj tib lub npe) — tsob ntoo yuav nthuav nws tus kheej yog xav tau thiab hloov mus rau ib qhov pom tsuas yog tus neeg ntawd tsev neeg ze tam sim ntawd.',
-        guide_q10: 'Kuv yuav rho ib daim duab lossis ntaub ntawv tsev uas upload yuam kev li cas?',
-        guide_a10: 'Ntsiag ntsiag tso koj lub cursor rau saum daim duab me me lossis ntaub ntawv ntawd thiab nyem lub "×" liab me me uas tshwm sim ntawm nws sab ceg. Qhov no yuav rho nws tawm ntawm cov ntaub ntawv thiab xa cov ntaub ntawv mus rau Drive lub thoob khib nyiab.',
-        guide_q6: 'Yuav muaj dab tsi yog nyem rau lub thawv nws tus kheej (tsis yog lub npe lossis "+")?',
-        guide_a6: 'Nws yuav tsom rau tsuas yog tus neeg ntawd cov niam txiv, poj/txiv, thiab menyuam xwb, npaj ua ib qho pom tau me me — zoo rau luam ntawv. Nyem tib lub thawv ntawd dua kom rov qab mus rau tag nrho tsob ntoo.',
-        guide_q7: 'Kuv yuav luam tsob ntoo li cas?',
-        guide_a7: 'Nyem lub pob Luam Ntawv hauv tsob ntoo cov cuab yeej. Kom tau ib daim ntawv luam zoo dua, tsom rau ib tsev neeg ua ntej (nyem lawv lub thawv) ua ntej luam.',
-        guide_q8: 'Kuv yuav hloov hom lus li cas?',
-        guide_a8: 'Siv cov pob EN / ລາວ / Hmoob nyob ntawm sab xis saum toj ntawm nplooj ntawv. Nws hloov tam sim ntawd tsis poob koj qhov chaw saib.',
+        guide_a2: '<ol><li>Ntaus nws lub npe rau hauv "Nrhiav ib tug tswv cuab uas twb muaj lawm los kho" saum toj ntawm daim ntawv.</li><li>Xaiv nws ntawm cov npe tshwm sim.</li><li>Kho cov ntaub ntawv raws li koj xav tau.</li><li>Nyem Khaws Cia Tus Tswv Cuab.</li></ol>',
+        guide_q3: 'Kuv yuav ntxiv lossis hloov ib tug neeg daim duab profile li cas?',
+        guide_a3: '<ol><li>Tus neeg ntawd yuav tsum khaws cia ua ntej — nrhiav nws yog tseem tshiab.</li><li>Hauv daim ntawv, nyem, rub ib daim duab los tso, lossis luam (Ctrl+V) ib daim duab rau hauv lub voj profile.</li><li>Koj tseem ua tau qhov no ncaj qha ntawm <a href="#" data-guide-jump="6">Tsob Ntoo Tsev Neeg</a>: nyem tus neeg lub voj duab me me — yog tseem tsis muaj, nws yuav qhib koj lub koob yees duab/qhov nrhiav duab tam sim ntawd; yog twb muaj lawm, yuav muaj ib qho menu me qhia "Saib daim duab" lossis "Hloov daim duab".</li></ol>',
+        guide_q4: 'Kuv yuav rho ib daim duab lossis ntaub ntawv tsev uas upload yuam kev li cas?',
+        guide_a4: 'Ntsiag ntsiag tso koj lub cursor rau saum daim duab me me lossis ntaub ntawv ntawd thiab nyem lub "×" liab me me uas tshwm sim ntawm nws sab ceg. Qhov no yuav rho nws tawm ntawm cov ntaub ntawv thiab xa cov ntaub ntawv mus rau Drive lub thoob khib nyiab.',
+        guide_q5: 'Chaw Nyob Teb Chaws / Xeev / Nroog / Zos ua hauj lwm li cas?',
+        guide_a5: '<ol><li>Xaiv Teb Chaws ua ntej.</li><li>Yog Los, Xeev, Nroog, thiab Zos yuav dhau los ua cov npe nrhiav tau ntawm koj cov ntaub ntawv chaw nyob.</li><li>Lwm lub tebchaws sau tau ncaj qha.</li></ol>Txhua qhov yuav qhib tau tom qab qhov ua ntej sau tas lawm xwb.',
+        guide_q11: 'Kuv yuav ntxiv ntau tshaj ib tug poj/txiv rau ib tug neeg li cas?',
+        guide_a11: '<ol><li>Qhib tus neeg ntawd ntawm <a href="#" data-guide-jump="0">Ntxiv / Kho Tswv Cuab</a>.</li><li>Hauv qhov Poj/Txiv, nrhiav (lossis ntxiv ua tus tshiab) tus poj/txiv thawj tug — nws yuav tshwm sim ua ib qho chip me me rho tau.</li><li>Rov ua dua kom ntxiv tus ob, tus peb, thiab lwm tus — txhua tus yuav muaj nws tus kheej daim chip.</li><li>Nyem Khaws Cia Tus Tswv Cuab.</li></ol>Tsob Ntoo Tsev Neeg yuav kos ib txoj kab mus rau txhua tus poj/txiv uas koj tau ntxiv.',
+        guide_q6: 'Kuv yuav nyeem Tsob Ntoo Tsev Neeg li cas?',
+        guide_a6: 'Txhua lub thawv qhia tus neeg lub npe, xyoo yug/tuag, thiab poj txiv.<ul><li>Nyem <b>lub npe</b> kom kho tus neeg ntawd.</li><li>Lub "+" me me nyob <b>hauv qab</b> nthuav nws cov menyuam.</li><li>Lub "+" nyob <b>saum toj</b> qhia nws niam txiv thiab cov kwvtij ua ke.</li><li>Lub "+" xiav nyob <b>sab xis nruab nrab</b> qhia ib tug poj/txiv — saib <a href="#" data-guide-jump="10">lub ntsiab lus no</a> seb thaum twg yuav siv tau.</li></ul>Ntsiag ntsiag tso koj lub cursor rau saum ib lub npe, pob, lossis thawv twg kom pom cov lus qhia hais tias nyem yuav ua li cas.',
+        guide_q7: 'Kuv yuav nrhiav ib tug neeg hauv Tsob Ntoo Tsev Neeg li cas?',
+        guide_a7: '<ol><li>Ntaus ib lub npe rau hauv qhov nrhiav ntawm tsob ntoo cov cuab yeej.</li><li>Xaiv ib tug neeg ntawm cov npe tshwm sim — tseem qhia lawv xyoo yug, niam txiv, thiab chaw nyob, kom pab txheeb seb leej twg thaum ob tug muaj tib lub npe.</li></ol>Tsob ntoo yuav nthuav nws tus kheej yog xav tau thiab hloov mus rau ib qhov pom tsuas yog tus neeg ntawd tsev neeg ze tam sim ntawd (saib <a href="#" data-guide-jump="8">"Yuav muaj dab tsi yog nyem rau lub thawv nws tus kheej?"</a>).',
+        guide_q8: 'Yuav muaj dab tsi yog nyem rau lub thawv nws tus kheej (tsis yog lub npe lossis "+")?',
+        guide_a8: 'Nws yuav tsom rau tsuas yog tus neeg ntawd cov niam txiv, poj/txiv, thiab menyuam xwb, npaj ua ib qho pom tau me me — zoo rau <a href="#" data-guide-jump="11">luam ntawv</a>. Nyem tib lub thawv ntawd dua kom rov qab mus rau tag nrho tsob ntoo.',
+        guide_q9: 'Kuv yuav ntxiv ib tug menyuam sai sai ncaj qha ntawm tsob ntoo li cas?',
+        guide_a9: '<ol><li>Nyem lub pob 👶 ntawm ceg sab xis hauv qab ntawm tus neeg lub thawv.</li><li>Daim ntawv Ntxiv Tswv Cuab yuav qhib nrog nws Txiv (lossis Niam, raws li poj txiv) sau tas lawm.</li><li>Sau tus menyuam tshiab cov ntaub ntawv thiab nyem Khaws Cia Tus Tswv Cuab.</li><li>Koj yuav raug coj rov qab mus rau Tsob Ntoo Tsev Neeg nrog tus menyuam tshiab pom tau — koj qhov chaw saib yuav tsis dhia lossis rov pib dua.</li></ol>',
+        guide_q12: 'Kuv yuav pom ib tug neeg tus poj/txiv yog nws tsis tau muaj menyuam li cas?',
+        guide_a12: 'Nyem lub "+" xiav ntawm ceg sab xis nruab nrab ntawm nws lub thawv. Qhov no ua tau txawm tsis muaj menyuam nthuav los xij — nws yog tib txoj kev qhia tau ib tug poj/txiv rau tus neeg uas tsis tau muaj menyuam sau cia. Saib <a href="#" data-guide-jump="6">"Kuv yuav nyeem Tsob Ntoo Tsev Neeg li cas?"</a> rau lwm cov pob ntawm lub thawv.',
+        guide_q10: 'Kuv yuav luam tsob ntoo li cas?',
+        guide_a10: '<ol><li>Nyem lub pob Luam Ntawv hauv tsob ntoo cov cuab yeej.</li><li>Kom tau ib daim ntawv luam zoo dua, <a href="#" data-guide-jump="8">tsom rau ib tsev neeg ua ntej</a> (nyem lawv lub thawv) ua ntej luam.</li></ol>',
+        guide_q13: 'Kuv yuav hloov hom lus li cas?',
+        guide_a13: 'Siv cov pob EN / ລາວ / Hmoob nyob ntawm sab xis saum toj ntawm nplooj ntawv. Nws hloov tam sim ntawd tsis poob koj qhov chaw saib — txawm cov npe hauv qhov nrhiav los kuj hloov kom phim, yog muaj ntaub ntawv ntawm hom lus ntawd.',
         form_h1: 'Ntxiv / Kho Tswv Cuab',
         find_label: 'Nrhiav ib tug tswv cuab uas twb muaj lawm los kho (tso cia dawb yog xav ntxiv tus tshiab)',
         find_placeholder: 'Pib ntaus lub npe...',
@@ -489,6 +554,7 @@
         relationships_h3: 'Kev Sib Raug Zoo',
         relationships_hint: 'Xaiv ntawm cov tswv cuab uas twb muaj lawm, lossis sau ib lub npe tshiab thiab xaiv "Ntxiv ua tus neeg tshiab".',
         father_label: 'Txiv', mother_label: 'Niam', spouse_label: 'Nkauj Nraug / Nraug Nkauj',
+        spouse_hint: 'Ntxiv tau ntau leej raws li koj xav tau — txhua tus yuav tshwm sim ua ib qho chip me me rho tau hauv qab no.',
         relation_placeholder: 'Nrhiav lossis sau lub npe tshiab...',
         notes_label: 'Sau Ntxiv', save_btn: '💾 Khaws Cia Tus Tswv Cuab', clear_btn: 'Ntxuav Daim Ntawv',
         tree_title: 'Tsob Ntoo Tsev Neeg', tree_search_placeholder: 'Nrhiav lub npe...',
@@ -555,7 +621,17 @@
       sel.select('rect title')
         .text(d => focusedId === d.data.ID ? t('tooltip_unfocus') : t('tooltip_focus'));
       sel.select('.avatar-thumb title')
-        .text(t('tooltip_view_photo'));
+        .text(d => t('tooltip_avatar_options'));
+      sel.select('.avatar-bg-title')
+        .text(d => d.data.PhotoURL ? t('tooltip_avatar_options') : t('tooltip_add_photo'));
+      sel.select('.avatar-placeholder-title')
+        .text(t('tooltip_add_photo'));
+      sel.select('.add-child-title')
+        .text(t('tooltip_add_child'));
+      sel.select('.toggle-spouse-title')
+        .text(d => spouseRevealed.has(d.data.ID) ? t('tooltip_hide_spouse') : t('tooltip_show_spouse'));
+      sel.select('.toggle-spouse-label-title')
+        .text(d => spouseRevealed.has(d.data.ID) ? t('tooltip_hide_spouse') : t('tooltip_show_spouse'));
     }
 
     function setLanguage(lang) {
@@ -662,7 +738,7 @@
           // class of "the dropdown closed before my click registered" bugs.
           opt.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            input.value = r.name;
+            input.value = pickLocalizedName(r.names);
             hidden.value = r.id;
             delete hidden.dataset.newName;
             list.style.display = 'none';
@@ -685,22 +761,125 @@
       return str.split(' - ')[0].trim();
     }
 
+    /**
+     * Picks the best name to display for the currently selected UI language.
+     * Tries the selected language first; if that's not recorded for this
+     * person, falls back through Hmong → Lao → English (whichever is
+     * actually filled in), instead of always defaulting to English.
+     */
+    function pickLocalizedName(names) {
+      if (!names) return '';
+      const langKey = currentLang === 'lo' ? 'lo' : (currentLang === 'hmn' ? 'hmn' : 'en');
+      return names[langKey] || names.hmn || names.lo || names.en || '';
+    }
+
     /** Builds the shared "name + birth/parents + address" preview markup used in every member-picker dropdown. */
     function memberOptionMarkup_(r) {
       const detailParts = [];
       if (r.birthYear) detailParts.push('b. ' + r.birthYear);
-      const parents = [r.fatherName, r.motherName].filter(Boolean).join(' & ');
+      const fatherName = pickLocalizedName(r.fatherNames);
+      const motherName = pickLocalizedName(r.motherNames);
+      const parents = [fatherName, motherName].filter(Boolean).join(' & ');
       if (parents) detailParts.push('Parents: ' + parents);
 
-      const addressParts = [r.country, englishPart_(r.province), englishPart_(r.city), englishPart_(r.village)]
+      // Address has no Hmong version recorded, so it's always shown as the
+      // full "English - Lao" text already stored, regardless of UI language.
+      const addressParts = [r.country, r.province, r.city, r.village]
         .filter(Boolean).join(', ');
 
-      return `<div class="editsearch-name">${r.name}</div>` +
+      return `<div class="editsearch-name">${pickLocalizedName(r.names)}</div>` +
         (detailParts.length ? `<div class="editsearch-detail">${detailParts.join(' · ')}</div>` : '') +
         (addressParts ? `<div class="editsearch-detail">${addressParts}</div>` : '');
     }
 
-    wireAutocomplete('SpouseSearch', 'SpouseList', 'SpouseID', true);
+    // ---------- Multiple spouses (chip list) ----------
+    let currentSpouses = []; // [{ id: 'M0001'|null, name: 'Full Name', isNew: bool }]
+
+    function renderSpouseChips() {
+      const container = document.getElementById('spouseChips');
+      container.innerHTML = '';
+      currentSpouses.forEach((sp, idx) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = sp.name;
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'chip-remove';
+        removeBtn.textContent = '×';
+        removeBtn.onclick = () => { currentSpouses.splice(idx, 1); renderSpouseChips(); };
+        chip.appendChild(removeBtn);
+        container.appendChild(chip);
+      });
+    }
+
+    /** Loads however many spouses (comma-separated IDs) a record has into the chip list. */
+    function loadSpouseChips(spouseIdField) {
+      currentSpouses = [];
+      renderSpouseChips();
+      (spouseIdField || '').split(',').map(s => s.trim()).filter(Boolean).forEach(id => {
+        google.script.run.withSuccessHandler(m => {
+          if (!m) return;
+          const names = {
+            en: `${m.EnglishFirstName || ''} ${m.EnglishLastName || ''}`.trim(),
+            lo: `${m.LaoFirstName || ''} ${m.LaoLastName || ''}`.trim(),
+            hmn: `${m.HmongFirstName || ''} ${m.HmongLastName || ''}`.trim()
+          };
+          currentSpouses.push({ id: id, name: pickLocalizedName(names), isNew: false });
+          renderSpouseChips();
+        }).getMemberById(id);
+      });
+    }
+
+    function wireSpouseAutocomplete() {
+      const input = document.getElementById('SpouseSearch');
+      const list = document.getElementById('SpouseList');
+      let debounceTimer;
+
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const q = input.value.trim();
+        debounceTimer = setTimeout(() => {
+          google.script.run.withSuccessHandler(renderList).searchMembers(q);
+        }, 200);
+      });
+
+      function renderList(results) {
+        list.innerHTML = '';
+        const typed = input.value.trim();
+        if (typed) {
+          const newOpt = document.createElement('div');
+          newOpt.style.color = 'var(--accent)';
+          newOpt.textContent = `➕ Add "${typed}" as new person`;
+          newOpt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            currentSpouses.push({ id: null, name: typed, isNew: true });
+            renderSpouseChips();
+            input.value = '';
+            list.style.display = 'none';
+          });
+          list.appendChild(newOpt);
+        }
+        results.filter(r => !currentSpouses.some(sp => sp.id === r.id)).forEach(r => {
+          const opt = document.createElement('div');
+          opt.className = 'editsearch-option';
+          opt.innerHTML = memberOptionMarkup_(r);
+          opt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            currentSpouses.push({ id: r.id, name: pickLocalizedName(r.names), isNew: false });
+            renderSpouseChips();
+            input.value = '';
+            list.style.display = 'none';
+          });
+          list.appendChild(opt);
+        });
+        list.style.display = list.children.length ? 'block' : 'none';
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!list.contains(e.target) && e.target !== input) list.style.display = 'none';
+      });
+    }
+    wireSpouseAutocomplete();
 
     // =========================================================
     // Address — Country/Province/City/Village cascading dropdowns
@@ -903,7 +1082,7 @@
             // a whole class of "the dropdown closed before my click registered" bugs.
             opt.addEventListener('mousedown', (e) => {
               e.preventDefault();
-              document.getElementById('editSearch').value = r.name;
+              document.getElementById('editSearch').value = pickLocalizedName(r.names);
               list.style.display = 'none';
               loadMember(r.id);
             });
@@ -941,7 +1120,7 @@
         document.getElementById('Notes').value = m.Notes || '';
         setRelationField('Father', m.FatherID);
         setRelationField('Mother', m.MotherID);
-        setRelationField('Spouse', m.SpouseID);
+        loadSpouseChips(m.SpouseID);
         renderPhotoPreview(m.PhotoURL || '');
         renderHouseGallery(m.HouseImages || '');
         showToast(t('toast_loaded', { name: displayNameForToast_(m) }));
@@ -1019,6 +1198,96 @@
     function closeImageLightbox() {
       document.getElementById('imageLightboxOverlay').classList.remove('active');
     }
+
+    // =========================================================
+    // Tree avatar click: no photo yet → straight to upload.
+    // Has a photo → small menu offering "View" or "Change".
+    // =========================================================
+    let avatarMenuTargetId = null;
+    let avatarUploadTargetId = null;
+
+    function handleAvatarClick(event, d) {
+      if (d.data.PhotoURL) {
+        showAvatarMenu(event, d.data.ID);
+      } else {
+        triggerAvatarUpload(d.data.ID);
+      }
+    }
+
+    function showAvatarMenu(event, id) {
+      avatarMenuTargetId = id;
+      const menu = document.getElementById('avatarMenu');
+      const menuW = 170, menuH = 92; // rough size, used only to keep it on-screen
+      let left = event.clientX;
+      let top = event.clientY;
+      if (left + menuW > window.innerWidth) left = window.innerWidth - menuW - 10;
+      if (top + menuH > window.innerHeight) top = window.innerHeight - menuH - 10;
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+      menu.style.display = 'block';
+    }
+
+    function hideAvatarMenu() {
+      document.getElementById('avatarMenu').style.display = 'none';
+      avatarMenuTargetId = null;
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('avatarMenu');
+      if (menu.style.display === 'block' && !menu.contains(e.target)) hideAvatarMenu();
+    });
+
+    function avatarMenuView() {
+      const id = avatarMenuTargetId;
+      hideAvatarMenu();
+      const node = allNodesFlat.find(n => n.data.ID === id);
+      if (node) openImageLightbox(node.data.PhotoURL);
+    }
+
+    function avatarMenuChange() {
+      const id = avatarMenuTargetId;
+      hideAvatarMenu();
+      triggerAvatarUpload(id);
+    }
+
+    function triggerAvatarUpload(id) {
+      avatarUploadTargetId = id;
+      const input = document.getElementById('treeAvatarFileInput');
+      input.value = '';
+      input.click();
+    }
+
+    document.getElementById('treeAvatarFileInput').addEventListener('change', function () {
+      const file = this.files && this.files[0];
+      const targetId = avatarUploadTargetId;
+      this.value = '';
+      if (!file || !targetId) return;
+
+      const node = allNodesFlat.find(n => n.data.ID === targetId);
+      const label = node ? displayName(node.data) : targetId;
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64Data = reader.result.split(',')[1];
+        showToast(t('toast_uploading_photo'));
+        google.script.run.withSuccessHandler(url => {
+          if (node) {
+            node.data.PhotoURL = url;
+            // Refresh just this one node's avatar display — no full reload needed.
+            gZoom.selectAll('g.node').filter(n => n.data.ID === targetId).each(function () {
+              const sel = d3.select(this);
+              sel.select('image.avatar-thumb').attr('href', driveThumbUrl(url)).style('display', 'block');
+              sel.select('text.avatar-placeholder').style('display', 'none');
+            });
+            refreshNodeTooltips(gZoom.selectAll('g.node').filter(n => n.data.ID === targetId));
+          }
+          showToast(t('toast_photo_uploaded'));
+        }).withFailureHandler(err => {
+          showToast(t('toast_error', { msg: err.message }), true);
+        }).uploadMemberFile(targetId, label, file.name, file.type, base64Data, 'PhotoURL');
+      };
+      reader.readAsDataURL(file);
+    });
 
     function renderPhotoPreview(url) {
       const el = document.getElementById('photoPreview');
@@ -1221,7 +1490,9 @@
       document.getElementById('memberForm').reset();
       document.getElementById('ID').value = '';
       document.getElementById('PhotoURL').value = '';
-      ['FatherID', 'MotherID', 'SpouseID'].forEach(id => document.getElementById(id).value = '');
+      ['FatherID', 'MotherID'].forEach(id => document.getElementById(id).value = '');
+      currentSpouses = [];
+      renderSpouseChips();
       document.getElementById('editSearch').value = '';
       document.getElementById('editSearchList').style.display = 'none';
       renderPhotoPreview('');
@@ -1248,7 +1519,6 @@
         PhotoURL: document.getElementById('PhotoURL').value.trim(),
         FatherID: document.getElementById('FatherID').value,
         MotherID: document.getElementById('MotherID').value,
-        SpouseID: document.getElementById('SpouseID').value,
         Country: document.getElementById('Country').value.trim(),
         Province: document.getElementById('Province').value.trim(),
         City: document.getElementById('City').value.trim(),
@@ -1272,7 +1542,7 @@
       showSaveModal('loading', t('toast_saving'));
 
       const newPersonJobs = [];
-      ['Father', 'Mother', 'Spouse'].forEach(prefix => {
+      ['Father', 'Mother'].forEach(prefix => {
         const hidden = document.getElementById(prefix + 'ID');
         const newName = hidden.dataset.newName;
         if (newName && !hidden.value) {
@@ -1282,13 +1552,27 @@
 
       function finalizeSave() {
         google.script.run.withSuccessHandler(res => {
-          treeInitialized = false;
+          const shouldReturnToTree = cameFromTree;
+          cameFromTree = false;
+
+          if (shouldReturnToTree && treeInitialized && root) {
+            // Re-fetch and rebuild using the exact same layout logic as any
+            // normal view — but restore exactly which branches were expanded
+            // (and which family was focused) first, so it doesn't feel like
+            // starting over; it just reappears with the changes visible.
+            reloadTreePreservingLayout(res.id);
+          } else {
+            treeInitialized = false; // force a fresh reload next time the tree is viewed
+            if (shouldReturnToTree) pendingFocusIdAfterTreeLoad = res.id;
+          }
 
           showSaveModal('success', res.mode === 'created' ? t('toast_saved_new') : t('toast_saved_update'));
           resetForm();
+
           setTimeout(() => {
             hideSaveModal();
             saveBtn.disabled = false;
+            if (shouldReturnToTree) showPanel('tree');
           }, 1400);
         }).withFailureHandler(err => {
           showSaveModal('error', t('toast_error', { msg: err.message }));
@@ -1296,9 +1580,11 @@
         }).saveMember(payload);
       }
 
-      if (newPersonJobs.length === 0) {
-        finalizeSave();
-      } else {
+      function resolveFatherMotherThenSave() {
+        if (newPersonJobs.length === 0) {
+          finalizeSave();
+          return;
+        }
         let remaining = newPersonJobs.length;
         let hadError = false;
         newPersonJobs.forEach(job => {
@@ -1314,6 +1600,42 @@
           }).saveMember({ EnglishFirstName: first, EnglishLastName: rest.join(' ') });
         });
       }
+
+      // Resolve every spouse chip first — any marked "new" needs to be created
+      // as a real record so we have a real ID, before we can save the main
+      // person's SpouseID as a combined comma-separated list.
+      const resolvedSpouseIds = [];
+      const spousesToResolve = currentSpouses.slice();
+      let spouseIdx = 0;
+      let spouseHadError = false;
+
+      function resolveNextSpouse() {
+        if (spouseHadError) return;
+        if (spouseIdx >= spousesToResolve.length) {
+          payload.SpouseID = resolvedSpouseIds.join(',');
+          resolveFatherMotherThenSave();
+          return;
+        }
+        const sp = spousesToResolve[spouseIdx];
+        if (sp.id) {
+          resolvedSpouseIds.push(sp.id);
+          spouseIdx++;
+          resolveNextSpouse();
+          return;
+        }
+        const [first, ...rest] = sp.name.split(' ');
+        google.script.run.withSuccessHandler(res => {
+          resolvedSpouseIds.push(res.id);
+          spouseIdx++;
+          resolveNextSpouse();
+        }).withFailureHandler(err => {
+          spouseHadError = true;
+          showSaveModal('error', t('toast_error', { msg: err.message }));
+          saveBtn.disabled = false;
+        }).saveMember({ EnglishFirstName: first, EnglishLastName: rest.join(' ') });
+      }
+
+      resolveNextSpouse();
     });
 
     function showToast(msg, isError) {
@@ -1360,21 +1682,43 @@
     // Family Tree — D3 collapsible tree
     // =========================================================
     const NODE_W = 170, NODE_H = 64;
-    const H_SPACING = 210, V_SPACING = 160;
+    const H_SPACING = 176, V_SPACING = 84;
 
     let root, svg, gZoom, zoomBehavior;
     let allNodesFlat = [];
+    let childrenIndex_ = new Map(); // parentId -> array of child nodes, rebuilt whenever allNodesFlat changes
+
+    /** Rebuilds the parent→children lookup once per render, instead of every recursive layout function re-scanning the whole tree. */
+    function rebuildChildrenIndex_() {
+      childrenIndex_ = new Map();
+      allNodesFlat.forEach(n => {
+        [n.data.FatherID, n.data.MotherID].forEach(pid => {
+          if (!pid) return;
+          if (!childrenIndex_.has(pid)) childrenIndex_.set(pid, []);
+          childrenIndex_.get(pid).push(n);
+        });
+      });
+    }
+
+    /** O(1) lookup of a person's children, instead of scanning the entire tree every time. */
+    function childrenOf_(id) {
+      return childrenIndex_.get(id) || [];
+    }
 
     function getCanvasSize() {
       const panel = document.getElementById('panel-tree');
       const toolbar = panel.querySelector('.tree-toolbar');
       const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 0;
-      const width = panel.clientWidth || (window.innerWidth - 220);
+      // Fallback only kicks in when the panel isn't visible yet (clientWidth/Height
+      // read as 0) — e.g. mid-transition during the quick-add-child flow. Mobile has
+      // no permanent sidebar, so don't subtract desktop sidebar width in that case.
+      const sidebarAllowance = isMobileView() ? 0 : 220;
+      const width = panel.clientWidth || (window.innerWidth - sidebarAllowance);
       const height = (panel.clientHeight || window.innerHeight) - toolbarH;
       return { width: width, height: height };
     }
 
-    function initTree(members) {
+    function initTree(members, preserveExpandedIds) {
       if (!members || members.length === 0) {
         document.getElementById('tree-canvas').outerHTML =
           '<p class="no-members-msg" style="padding:40px;text-align:center;color:var(--ink-soft);">' + t('no_members_msg') + '</p>';
@@ -1384,9 +1728,15 @@
       root = d3.hierarchy(hierarchyRoot);
       root.x0 = 0;
       root.y0 = 0;
-      root.children && root.children.forEach(collapseBeyond(1));
+      root.children && root.children.forEach(collapseBeyond(1, preserveExpandedIds));
       setupSvg();
       update(root);
+
+      if (pendingFocusIdAfterTreeLoad) {
+        const targetId = pendingFocusIdAfterTreeLoad;
+        pendingFocusIdAfterTreeLoad = null;
+        setTimeout(() => jumpToPersonAndFocus(targetId), 50);
+      }
     }
 
     function buildHierarchy(members) {
@@ -1405,12 +1755,39 @@
         }
       });
 
-      return { ID: '__ROOT__', isVirtualRoot: true, children: roots };
+      const rootObj = { ID: '__ROOT__', isVirtualRoot: true, children: roots };
+      sortByBirthDateRecursive_(rootObj);
+      return rootObj;
     }
 
-    function collapseBeyond(depth) {
+    /** Orders every sibling group oldest-first (left to right); people with no recorded birth date are kept after their dated siblings, in their original relative order. */
+    function sortByBirthDateRecursive_(node) {
+      if (!node.children || !node.children.length) return;
+      node.children.sort((a, b) => {
+        const ad = a.BirthDate || '';
+        const bd = b.BirthDate || '';
+        if (!ad && !bd) return 0;
+        if (!ad) return 1;
+        if (!bd) return -1;
+        return ad < bd ? -1 : (ad > bd ? 1 : 0);
+      });
+      node.children.forEach(sortByBirthDateRecursive_);
+    }
+
+    /** Records which nodes are currently expanded (not collapsed), so a reload can restore the same view instead of resetting to the default. */
+    function snapshotExpandedIds() {
+      const ids = new Set();
+      allNodesFlat.forEach(n => { if (n.children) ids.add(n.data.ID); });
+      return ids;
+    }
+
+    function collapseBeyond(depth, preserveExpandedIds) {
       return function recurse(d) {
         if (d.depth >= depth && d.children) {
+          if (preserveExpandedIds && preserveExpandedIds.has(d.data.ID)) {
+            d.children.forEach(recurse); // stay expanded here, but still apply the same rule further down
+            return;
+          }
           d._children = d.children;
           d._children.forEach(recurse);
           d.children = null;
@@ -1448,23 +1825,35 @@
       const nodes = root.descendants().filter(d => !d.data.isVirtualRoot);
       const links = root.links().filter(l => !l.source.data.isVirtualRoot);
       allNodesFlat = nodes;
+      rebuildChildrenIndex_();
 
       // A spouse with no recorded parents of their own becomes an independent
       // "root" in the tree structure, which the layout can place far away from
       // their actual partner. Snap any such person back to sit right beside
       // their spouse instead, as long as the spouse does have their own place
-      // in the tree (i.e. isn't also a disconnected root).
+      // in the tree (i.e. isn't also a disconnected root). If several parentless
+      // spouses share the same partner (e.g. multiple wives), spread them out
+      // instead of letting them land on top of each other.
       const byId_ = {};
       nodes.forEach(n => { byId_[n.data.ID] = n; });
+      const spouseGroups = {};
       nodes.forEach(n => {
         const hasOwnParents = n.data.FatherID || n.data.MotherID;
         if (hasOwnParents) return;
-        const spouseNode = n.data.SpouseID ? byId_[n.data.SpouseID] : null;
+        const spouseIds = parseSpouseIds(n.data.SpouseID);
+        if (spouseIds.length !== 1) return; // only the simple "one husband/wife" case is handled here
+        const spouseNode = byId_[spouseIds[0]];
         if (!spouseNode) return;
         const spouseHasParents = spouseNode.data.FatherID || spouseNode.data.MotherID;
         if (!spouseHasParents) return;
-        n.x = spouseNode.x + (n.data.ID < spouseNode.data.ID ? -H_SPACING : H_SPACING);
-        n.y = spouseNode.y;
+        (spouseGroups[spouseNode.data.ID] = spouseGroups[spouseNode.data.ID] || []).push(n);
+      });
+      Object.keys(spouseGroups).forEach(targetId => {
+        const targetNode = byId_[targetId];
+        spouseGroups[targetId].forEach((n, i) => {
+          n.x = targetNode.x + H_SPACING * (i + 1);
+          n.y = targetNode.y;
+        });
       });
 
       const link = gZoom.selectAll('path.link').data(links, d => d.target.data.ID);
@@ -1488,9 +1877,18 @@
         exit => exit.remove()
       ).attr('d', d => elbow(d.source, d.target));
 
-      const spouseData = nodes
-        .filter(d => d.data.SpouseID && byIdVisible[d.data.SpouseID] && d.data.ID < d.data.SpouseID)
-        .map(d => ({ a: d, b: byIdVisible[d.data.SpouseID] }));
+      const spouseData = [];
+      const drawnPairs = new Set();
+      nodes.forEach(d => {
+        parseSpouseIds(d.data.SpouseID).forEach(sid => {
+          const b = byIdVisible[sid];
+          if (!b) return;
+          const pairKey = [d.data.ID, sid].sort().join('|');
+          if (drawnPairs.has(pairKey)) return;
+          drawnPairs.add(pairKey);
+          spouseData.push({ a: d, b });
+        });
+      });
 
       const spouseLink = gZoom.selectAll('line.spouse').data(spouseData, d => d.a.data.ID + '-' + d.b.data.ID);
       spouseLink.join(
@@ -1527,8 +1925,10 @@
         .style('cursor', 'pointer')
         .on('click', (event, d) => {
           event.stopPropagation();
-          if (d.data.PhotoURL) openImageLightbox(d.data.PhotoURL);
-        });
+          handleAvatarClick(event, d);
+        })
+        .append('title')
+        .attr('class', 'avatar-bg-title');
 
       nodeEnter.append('text')
         .attr('class', 'avatar-placeholder')
@@ -1538,8 +1938,10 @@
         .style('cursor', 'pointer')
         .on('click', (event, d) => {
           event.stopPropagation();
-          if (d.data.PhotoURL) openImageLightbox(d.data.PhotoURL);
-        });
+          handleAvatarClick(event, d);
+        })
+        .append('title')
+        .attr('class', 'avatar-placeholder-title');
 
       nodeEnter.append('image')
         .attr('class', 'avatar-thumb')
@@ -1550,7 +1952,7 @@
         .style('cursor', 'pointer')
         .on('click', (event, d) => {
           event.stopPropagation();
-          if (d.data.PhotoURL) openImageLightbox(d.data.PhotoURL);
+          handleAvatarClick(event, d);
         })
         .append('title')
         .text(t('tooltip_view_photo'));
@@ -1560,6 +1962,32 @@
         .attr('cx', AVATAR_CX).attr('cy', AVATAR_CY).attr('r', AVATAR_R)
         .attr('fill', 'none')
         .style('pointer-events', 'none');
+
+      nodeEnter.append('circle')
+        .attr('class', 'toggle toggle-spouse')
+        .attr('r', 9)
+        .attr('cx', NODE_W / 2)
+        .attr('cy', 0)
+        .style('display', 'none')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleSpouseReveal(d);
+        })
+        .append('title')
+        .attr('class', 'toggle-spouse-title');
+
+      nodeEnter.append('text')
+        .attr('class', 'toggle-label toggle-spouse-label')
+        .attr('x', NODE_W / 2)
+        .attr('y', 4)
+        .style('display', 'none')
+        .text('+')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleSpouseReveal(d);
+        })
+        .append('title')
+        .attr('class', 'toggle-spouse-label-title');
 
       nodeEnter.append('text')
         .attr('class', 'node-name-link')
@@ -1606,7 +2034,7 @@
         .attr('class', 'toggle-title');
 
       nodeEnter.append('text')
-        .attr('class', 'toggle-label')
+        .attr('class', 'toggle-label toggle-children-label')
         .attr('y', NODE_H / 2 + 4)
         .style('display', d => hasAnyChildren(d) ? 'block' : 'none')
         .text(d => d.children ? '−' : '+')
@@ -1616,6 +2044,31 @@
         })
         .append('title')
         .attr('class', 'toggle-label-title');
+
+      nodeEnter.append('circle')
+        .attr('class', 'add-child-btn')
+        .attr('r', 9)
+        .attr('cx', NODE_W / 2 - 14)
+        .attr('cy', NODE_H / 2)
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          addChildFor(d);
+        })
+        .append('title')
+        .attr('class', 'add-child-title');
+
+      nodeEnter.append('text')
+        .attr('class', 'add-child-icon')
+        .attr('x', NODE_W / 2 - 14)
+        .attr('y', NODE_H / 2 + 4)
+        .attr('text-anchor', 'middle')
+        .text('👶')
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          addChildFor(d);
+        });
 
       nodeEnter.append('circle')
         .attr('class', 'toggle toggle-up')
@@ -1643,11 +2096,15 @@
 
       const nodeMerge = nodeEnter.merge(node);
       nodeMerge.transition().duration(300).attr('transform', d => `translate(${d.x},${d.y})`);
-      nodeMerge.select('text.toggle-label').text(d => d.children ? '−' : (d._children ? '+' : ''));
+      nodeMerge.select('text.toggle-children-label').text(d => d.children ? '−' : (d._children ? '+' : ''));
       nodeMerge.selectAll('circle.toggle-up, text.toggle-up-label')
         .style('display', d => (focusedId && hasParentData_(d.data)) ? 'block' : 'none');
       nodeMerge.select('text.toggle-up-label')
         .text(d => upExpanded.has(d.data.ID) ? '−' : '+');
+      nodeMerge.selectAll('circle.toggle-spouse, text.toggle-spouse-label')
+        .style('display', d => (focusedId && hasSpouseData_(d.data)) ? 'block' : 'none');
+      nodeMerge.select('text.toggle-spouse-label')
+        .text(d => spouseRevealed.has(d.data.ID) ? '−' : '+');
       nodeMerge.classed('highlight', false);
 
       // Show the person's photo if they have one; otherwise show a plain placeholder icon.
@@ -1703,23 +2160,87 @@
       return 'var(--ink-soft)';
     }
 
-    /** Jumps from the tree straight into the Add/Edit form, pre-loaded with this person's record. */
+    /** Jumps from the tree straight into the Add/Edit form, pre-loaded with this person's record. On save, returns to the tree with the same layout intact. */
     function goToEditMember(id) {
+      cameFromTree = true;
       showPanel('form');
       loadMember(id);
     }
 
+    /**
+     * The 🍼 button on each box: jumps to a blank Add Member form with the
+     * Father (or Mother, based on this person's gender) already filled in,
+     * so the user just types the new child's details and saves. On save,
+     * the app automatically returns to the tree and focuses the new person.
+     */
+    function addChildFor(d) {
+      cameFromTree = true;
+      showPanel('form');
+      resetForm();
+      const isFemale = (d.data.Gender || '').toLowerCase() === 'female';
+      const prefix = isFemale ? 'Mother' : 'Father';
+      document.getElementById(prefix + 'ID').value = d.data.ID;
+      document.getElementById(prefix + 'Search').value = displayName(d.data);
+      showToast(t('toast_quick_add_child', { name: displayName(d.data) }));
+      setTimeout(() => document.getElementById('EnglishFirstName').focus(), 150);
+    }
+
+    /**
+     * Adds a newly-saved child by reloading the real data and rebuilding the
+     * tree the normal way — reusing the exact same, already-correct layout
+     * logic used everywhere else — but first snapshots exactly which branches
+     * were expanded (and which family is focused) so the rebuild restores the
+     * same view instead of resetting back to the default collapsed state.
+     */
+    function reloadTreePreservingLayout(newMemberId) {
+      const preserveIds = snapshotExpandedIds();
+      const savedFocusedId = focusedId;
+      const savedUpExpanded = new Set(upExpanded);
+      const savedSpouseRevealed = new Set(spouseRevealed);
+      // setupSvg() (called inside initTree) always resets pan/zoom back to a
+      // default view — capture the exact current transform first so we can
+      // restore it afterward instead, keeping the user right where they were.
+      const savedTransform = (svg && !svg.empty()) ? d3.zoomTransform(svg.node()) : null;
+
+      google.script.run.withSuccessHandler(members => {
+        initTree(members, preserveIds);
+        focusedId = savedFocusedId;
+        upExpanded = savedUpExpanded;
+        spouseRevealed = savedSpouseRevealed;
+        if (focusedId) { applyFocusVisibility(); applyFocusLayout(focusedId); }
+        if (savedTransform) svg.call(zoomBehavior.transform, savedTransform);
+
+        // A brief highlight on the new node — helpful if it happens to already
+        // be in view, but never moves the view to find it.
+        gZoom.selectAll('g.node').classed('highlight', d => d.data.ID === newMemberId);
+        setTimeout(() => gZoom.selectAll('g.node').classed('highlight', false), 2500);
+      }).getFamilyData();
+    }
+
+    /** Pans/zooms the tree to center on a person by ID — used when explicitly jumping to someone (e.g. via search). */
+    function centerOnPerson(id) {
+      const target = allNodesFlat.find(n => n.data.ID === id);
+      if (!target || !svg) return;
+      const size = getCanvasSize();
+      svg.transition().duration(400)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(size.width / 2 - target.x, size.height / 2 - target.y).scale(1));
+    }
+
     let focusedId = null;
     let upExpanded = new Set(); // ids whose parents have been pulled into the focus view
+    let spouseRevealed = new Set(); // ids whose spouse(s) have been explicitly pulled into the focus view
 
     function hasParentData_(data) { return !!(data.FatherID || data.MotherID); }
+    function hasSpouseData_(data) { return !!(data.SpouseID && data.SpouseID.trim()); }
 
     /** Breaks a person's immediate family into named roles (rather than a flat set), needed to position them. */
     function focusRoles(id) {
       const person = allNodesFlat.find(n => n.data.ID === id);
-      const spouse = person && person.data.SpouseID ? allNodesFlat.find(n => n.data.ID === person.data.SpouseID) : null;
-      const children = allNodesFlat.filter(n => n.data.FatherID === id || n.data.MotherID === id);
-      return { person, spouse, children };
+      const spouses = person
+        ? parseSpouseIds(person.data.SpouseID).map(sid => allNodesFlat.find(n => n.data.ID === sid)).filter(Boolean)
+        : [];
+      const children = childrenOf_(id);
+      return { person, spouses, children };
     }
 
     /**
@@ -1728,29 +2249,66 @@
      * leaving them scattered at their original full-tree coordinates — much
      * easier to read and to print.
      */
-    /** Recursively positions any further-expanded descendants beneath their own parent (simple, non-overlap-aware spacing). */
-    /** Recursively positions descendants beneath their parent, reserving a double-wide slot for anyone whose own spouse also needs to be shown (at any depth, not just the top row). */
-    function layoutExpandedDescendants_(id, baseX, baseY, positions, H, V) {
-      const kids = allNodesFlat.filter(n => n.data.FatherID === id || n.data.MotherID === id);
-      const spans = kids.map(kid => childNeedsSpouseSlot_(kid.data.ID, kid.data.SpouseID) ? 2 : 1);
-      const totalUnits = spans.reduce((a, b) => a + b, 0);
+    /** How many extra slots this child's own spouse(s) need — because either a child of theirs needed it shown, or the spouse was explicitly revealed via their own "+". */
+    function childSpouseCount_(childId, spouseIdField) {
+      const spouseIds = parseSpouseIds(spouseIdField);
+      if (!spouseIds.length) return 0;
+      const needsShowing = spouseRevealed.has(childId) || childrenOf_(childId).some(n => upExpanded.has(n.data.ID));
+      return needsShowing ? spouseIds.length : 0;
+    }
+
+    /**
+     * How many horizontal "H" units this person's own row of children+grandchildren
+     * (as far as currently expanded) actually needs — computed bottom-up so a sibling
+     * with many expanded descendants never has to borrow space from a neighbor.
+     * A leaf (no shown children) needs exactly 1 unit.
+     */
+    function computeSubtreeWidth_(id, widthCache) {
+      if (widthCache.has(id)) return widthCache.get(id);
+      const kids = childrenOf_(id);
+      let total = kids.length ? 0 : 1;
+      kids.forEach(kid => { total += slotWidthFor_(kid.data.ID, kid.data.SpouseID, widthCache); });
+      widthCache.set(id, total);
+      return total;
+    }
+
+    /** The full width a person's own slot needs — at least enough for them + their spouse(s), and at least enough for all of their own expanded descendants. */
+    function slotWidthFor_(id, spouseIdField, widthCache) {
+      const coupleWidth = 1 + childSpouseCount_(id, spouseIdField);
+      const descendantsWidth = computeSubtreeWidth_(id, widthCache);
+      return Math.max(coupleWidth, descendantsWidth);
+    }
+
+    /** Recursively positions descendants beneath their parent, giving each sibling exactly as much width as their own (possibly deeply-expanded) branch actually needs — so no branch ever overlaps or hides another. */
+    function layoutExpandedDescendants_(id, baseX, baseY, positions, H, V, widthCache) {
+      widthCache = widthCache || new Map();
+      const kids = childrenOf_(id);
+      if (!kids.length) return;
+
+      const slotWidths = kids.map(kid => slotWidthFor_(kid.data.ID, kid.data.SpouseID, widthCache));
+      const totalUnits = slotWidths.reduce((a, b) => a + b, 0);
       let leftUnit = -totalUnits / 2;
       const cy = baseY + V;
 
       kids.forEach((kid, i) => {
-        const span = spans[i];
-        const centerUnit = leftUnit + span / 2;
-        const slotCenterX = baseX + centerUnit * H;
-        const kidX = span === 2 ? slotCenterX - H / 2 : slotCenterX;
-        positions[kid.data.ID] = { x: kidX, y: cy };
-        if (span === 2) {
-          const kidSpouse = allNodesFlat.find(n => n.data.ID === kid.data.SpouseID);
-          if (kidSpouse && !positions[kidSpouse.data.ID]) {
-            positions[kidSpouse.data.ID] = { x: kidX + H, y: cy };
-          }
+        const slotW = slotWidths[i];
+        const spouseIds = parseSpouseIds(kid.data.SpouseID);
+        const needsSpouseSlot = childSpouseCount_(kid.data.ID, kid.data.SpouseID) > 0;
+        const coupleWidth = needsSpouseSlot ? 1 + spouseIds.length : 1;
+        const slotLeftX = baseX + leftUnit * H;
+        // Center the person(+spouses) within their slot — matters when their own
+        // descendants need more room than just the couple itself does.
+        const coupleLeftX = slotLeftX + ((slotW - coupleWidth) * H) / 2;
+        positions[kid.data.ID] = { x: coupleLeftX, y: cy };
+        if (needsSpouseSlot) {
+          spouseIds.forEach((sid, si) => {
+            const sp = allNodesFlat.find(n => n.data.ID === sid);
+            if (sp && !positions[sp.data.ID]) positions[sp.data.ID] = { x: coupleLeftX + H * (si + 1), y: cy };
+          });
         }
-        layoutExpandedDescendants_(kid.data.ID, kidX, cy, positions, H, V);
-        leftUnit += span;
+        const coupleMidX = coupleLeftX + ((coupleWidth - 1) * H) / 2;
+        layoutExpandedDescendants_(kid.data.ID, coupleMidX, cy, positions, H, V, widthCache);
+        leftUnit += slotW;
       });
     }
 
@@ -1768,7 +2326,7 @@
       // so a spouse like Mai Lor always lands directly next to their partner.
       let fatherPos = father ? positions[father.data.ID] : null;
       let motherPos = mother ? positions[mother.data.ID] : null;
-      const coupleGap = NODE_W + 20; // tighter than sibling spacing, so a revealed spouse doesn't land exactly on a sibling's slot
+      const coupleGap = NODE_W + 2; // tighter than sibling spacing (176), so a revealed spouse doesn't land exactly on a sibling's slot
 
       if (father && !fatherPos) {
         fatherPos = motherPos ? { x: motherPos.x - coupleGap, y: motherPos.y } : { x: baseX - (mother ? H / 2 : 0), y: baseY - V };
@@ -1783,49 +2341,51 @@
       if (mother) layoutExpandedAncestors_(mother.data.ID, motherPos.x, motherPos.y, positions, H, V);
     }
 
-    /** True if this child's own spouse needs to be shown too (because one of their kids has been ancestor-expanded). */
-    function childNeedsSpouseSlot_(childId, spouseId) {
-      if (!spouseId) return false;
-      return allNodesFlat.some(n =>
-        (n.data.FatherID === childId || n.data.MotherID === childId) && upExpanded.has(n.data.ID));
-    }
-
     function applyFocusLayout(id) {
-      const { person, spouse, children } = focusRoles(id);
+      const { person, spouses, children } = focusRoles(id);
       if (!person) return;
 
-      const H = 210, V = 160;
+      const H = 176, V = 84;
       const baseX = person.x, baseY = person.y;
       const positions = {};
 
-      if (spouse) {
-        positions[person.data.ID] = { x: baseX - H / 2, y: baseY };
-        positions[spouse.data.ID] = { x: baseX + H / 2, y: baseY };
+      if (spouses.length) {
+        const totalW = (spouses.length + 1 - 1) * H; // (person + spouses) laid out in a row, H apart
+        const startX = baseX - totalW / 2;
+        positions[person.data.ID] = { x: startX, y: baseY };
+        spouses.forEach((sp, i) => {
+          positions[sp.data.ID] = { x: startX + H * (i + 1), y: baseY };
+        });
       } else {
         positions[person.data.ID] = { x: baseX, y: baseY };
       }
 
-      // Each child normally takes one slot, but a child whose own spouse needs
-      // to be shown (because their kids have been ancestor-expanded) takes a
-      // double-wide slot instead — reserved up front, so later siblings shift
-      // over to make room rather than the spouse overlapping onto them.
-      const spans = children.map(child => childNeedsSpouseSlot_(child.data.ID, child.data.SpouseID) ? 2 : 1);
-      const totalUnits = spans.reduce((a, b) => a + b, 0);
+      // Each child gets exactly as much width as their own branch actually
+      // needs (computed bottom-up) — not a flat guess — so a sibling with many
+      // expanded descendants of their own never spills into a neighbor's space.
+      const widthCache = new Map();
+      const slotWidths = children.map(child => slotWidthFor_(child.data.ID, child.data.SpouseID, widthCache));
+      const totalUnits = slotWidths.reduce((a, b) => a + b, 0);
       let leftUnit = -totalUnits / 2;
       const cy = baseY + V;
 
       children.forEach((child, i) => {
-        const span = spans[i];
-        const centerUnit = leftUnit + span / 2;
-        const slotCenterX = baseX + centerUnit * H;
-        const childX = span === 2 ? slotCenterX - H / 2 : slotCenterX;
-        positions[child.data.ID] = { x: childX, y: cy };
-        if (span === 2) {
-          const childSpouse = allNodesFlat.find(n => n.data.ID === child.data.SpouseID);
-          if (childSpouse) positions[childSpouse.data.ID] = { x: childX + H, y: cy };
+        const slotW = slotWidths[i];
+        const spouseIds = parseSpouseIds(child.data.SpouseID);
+        const needsSpouseSlot = childSpouseCount_(child.data.ID, child.data.SpouseID) > 0;
+        const coupleWidth = needsSpouseSlot ? 1 + spouseIds.length : 1;
+        const slotLeftX = baseX + leftUnit * H;
+        const coupleLeftX = slotLeftX + ((slotW - coupleWidth) * H) / 2;
+        positions[child.data.ID] = { x: coupleLeftX, y: cy };
+        if (needsSpouseSlot) {
+          spouseIds.forEach((sid, si) => {
+            const childSpouse = allNodesFlat.find(n => n.data.ID === sid);
+            if (childSpouse) positions[childSpouse.data.ID] = { x: coupleLeftX + H * (si + 1), y: cy };
+          });
         }
-        layoutExpandedDescendants_(child.data.ID, childX, cy, positions, H, V);
-        leftUnit += span;
+        const coupleMidX = coupleLeftX + ((coupleWidth - 1) * H) / 2;
+        layoutExpandedDescendants_(child.data.ID, coupleMidX, cy, positions, H, V, widthCache);
+        leftUnit += slotW;
       });
 
       // Ancestors: walk upward from self and spouse (and anyone else already
@@ -1862,8 +2422,8 @@
 
     /** Recursively adds every currently-rendered (expanded) descendant of a person into the given set. */
     function collectRenderedDescendants_(id, set) {
-      allNodesFlat.forEach(n => {
-        if ((n.data.FatherID === id || n.data.MotherID === id) && !set.has(n.data.ID)) {
+      childrenOf_(id).forEach(n => {
+        if (!set.has(n.data.ID)) {
           set.add(n.data.ID);
           collectRenderedDescendants_(n.data.ID, set);
         }
@@ -1874,19 +2434,29 @@
     function familySetFor(id) {
       const set = new Set([id]);
       const person = allNodesFlat.find(n => n.data.ID === id);
-      if (person && person.data.SpouseID) set.add(person.data.SpouseID);
+      if (person) parseSpouseIds(person.data.SpouseID).forEach(sid => set.add(sid));
       collectRenderedDescendants_(id, set);
 
       let changed = true;
       while (changed) {
         changed = false;
         Array.from(set).forEach(memberId => {
-          if (!upExpanded.has(memberId)) return;
-          const m = allNodesFlat.find(n => n.data.ID === memberId);
-          if (!m) return;
-          [m.data.FatherID, m.data.MotherID].forEach(pid => {
-            if (pid && !set.has(pid)) { set.add(pid); changed = true; }
-          });
+          if (upExpanded.has(memberId)) {
+            const m = allNodesFlat.find(n => n.data.ID === memberId);
+            if (m) {
+              [m.data.FatherID, m.data.MotherID].forEach(pid => {
+                if (pid && !set.has(pid)) { set.add(pid); changed = true; }
+              });
+            }
+          }
+          if (spouseRevealed.has(memberId)) {
+            const m = allNodesFlat.find(n => n.data.ID === memberId);
+            if (m) {
+              parseSpouseIds(m.data.SpouseID).forEach(sid => {
+                if (!set.has(sid)) { set.add(sid); changed = true; }
+              });
+            }
+          }
         });
       }
       return set;
@@ -1899,50 +2469,99 @@
      * see the whole sibling row at once instead of needing a second click.
      * Clicking again ("−") hides all of it back down.
      */
+    /**
+     * Runs a layout-changing action, then counter-adjusts the pan/zoom so the
+     * clicked node's on-screen position doesn't shift — even though other
+     * nodes may reflow around it (e.g. siblings shifting to make room), the
+     * thing the user was actually looking at stays exactly where it was.
+     */
+    function withStablePosition(anchorId, action) {
+      const before = allNodesFlat.find(n => n.data.ID === anchorId);
+      const beforeX = before ? before.x : null;
+      const beforeY = before ? before.y : null;
+
+      action();
+
+      if (beforeX === null || !svg || svg.empty()) return;
+      const after = allNodesFlat.find(n => n.data.ID === anchorId);
+      if (!after) return;
+      const dx = after.x - beforeX;
+      const dy = after.y - beforeY;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return; // nothing meaningful moved
+
+      const t = d3.zoomTransform(svg.node());
+      const newTransform = d3.zoomIdentity.translate(t.x - dx * t.k, t.y - dy * t.k).scale(t.k);
+      svg.transition().duration(400).call(zoomBehavior.transform, newTransform);
+    }
+
     function toggleAncestors(d) {
       if (!focusedId) return;
       const id = d.data.ID;
-      if (upExpanded.has(id)) {
-        upExpanded.delete(id);
+      withStablePosition(id, () => {
+        if (upExpanded.has(id)) {
+          upExpanded.delete(id);
+          applyFocusVisibility();
+          applyFocusLayout(focusedId);
+          return;
+        }
+        upExpanded.add(id);
+
+        // Auto-expand the parents' own children list (if it was collapsed) so
+        // siblings show up immediately, in the same action as revealing parents.
+        const father = d.data.FatherID ? allNodesFlat.find(n => n.data.ID === d.data.FatherID) : null;
+        const mother = d.data.MotherID ? allNodesFlat.find(n => n.data.ID === d.data.MotherID) : null;
+        let needsRerender = false;
+        [father, mother].forEach(p => {
+          if (p && p._children) { p.children = p._children; p._children = null; needsRerender = true; }
+        });
+        if (needsRerender) update(d);
+
         applyFocusVisibility();
         applyFocusLayout(focusedId);
-        return;
-      }
-      upExpanded.add(id);
-
-      // Auto-expand the parents' own children list (if it was collapsed) so
-      // siblings show up immediately, in the same action as revealing parents.
-      const father = d.data.FatherID ? allNodesFlat.find(n => n.data.ID === d.data.FatherID) : null;
-      const mother = d.data.MotherID ? allNodesFlat.find(n => n.data.ID === d.data.MotherID) : null;
-      let needsRerender = false;
-      [father, mother].forEach(p => {
-        if (p && p._children) { p.children = p._children; p._children = null; needsRerender = true; }
       });
-      if (needsRerender) update(d);
+    }
 
-      applyFocusVisibility();
-      applyFocusLayout(focusedId);
+    /**
+     * Clicking the "+" at the middle-right of a box reveals that person's own
+     * spouse(s) — useful when they don't have children yet, so there'd
+     * otherwise be no way to see their marriage from this view. Clicking "−"
+     * hides it again.
+     */
+    function toggleSpouseReveal(d) {
+      if (!focusedId) return;
+      const id = d.data.ID;
+      withStablePosition(id, () => {
+        if (spouseRevealed.has(id)) spouseRevealed.delete(id); else spouseRevealed.add(id);
+        applyFocusVisibility();
+        applyFocusLayout(focusedId);
+      });
     }
 
     /** Clicking a box's background isolates that person's immediate family into a tighter layout; clicking it again restores the full tree. */
+    /** Clicking a box's background isolates that person's immediate family into a tighter layout; clicking it again restores the full tree. Either way, the clicked person stays visually anchored in place. */
     function toggleFocus(d) {
-      if (focusedId === d.data.ID) {
-        focusedId = null;
-        upExpanded.clear();
+      const id = d.data.ID;
+      withStablePosition(id, () => {
+        if (focusedId === id) {
+          focusedId = null;
+          upExpanded.clear();
+          spouseRevealed.clear();
+          applyFocusVisibility();
+          update(root);
+          return;
+        }
+        focusedId = id;
+        upExpanded = new Set([id]); // auto-reveal this person's own parents, as before
+        spouseRevealed = new Set();
+        // Make sure this person's children are actually expanded/rendered so they can be shown.
+        if (d._children) {
+          d.children = d._children;
+          d._children = null;
+        }
+        update(d);
         applyFocusVisibility();
-        update(root);
-        return;
-      }
-      focusedId = d.data.ID;
-      upExpanded = new Set([d.data.ID]); // auto-reveal this person's own parents, as before
-      // Make sure this person's children are actually expanded/rendered so they can be shown.
-      if (d._children) {
-        d.children = d._children;
-        d._children = null;
-      }
-      update(d);
-      applyFocusVisibility();
-      applyFocusLayout(d.data.ID);
+        applyFocusLayout(id);
+      });
     }
 
     function applyFocusVisibility() {
@@ -1950,6 +2569,9 @@
       gZoom.selectAll('circle.toggle-up, text.toggle-up-label')
         .style('display', d => (focusedId && hasParentData_(d.data)) ? 'block' : 'none');
       gZoom.selectAll('text.toggle-up-label').text(d => upExpanded.has(d.data.ID) ? '−' : '+');
+      gZoom.selectAll('circle.toggle-spouse, text.toggle-spouse-label')
+        .style('display', d => (focusedId && hasSpouseData_(d.data)) ? 'block' : 'none');
+      gZoom.selectAll('text.toggle-spouse-label').text(d => spouseRevealed.has(d.data.ID) ? '−' : '+');
 
       if (!focusedId) {
         gZoom.selectAll('g.node').style('display', null);
@@ -1970,6 +2592,7 @@
       if (focusedId) {
         focusedId = null;
         upExpanded.clear();
+        spouseRevealed.clear();
         applyFocusVisibility();
       }
     }
@@ -1997,6 +2620,11 @@
       });
     }
 
+    /** SpouseID can hold multiple comma-separated IDs for someone with more than one spouse. */
+    function parseSpouseIds(field) {
+      return (field || '').split(',').map(s => s.trim()).filter(Boolean);
+    }
+
     function hasAnyChildren(d) { return !!(d.children || d._children); }
 
     function toggleChildren(d) {
@@ -2004,13 +2632,15 @@
       else if (d._children) { d.children = d._children; d._children = null; }
       else return;
 
-      update(d);
-      if (focusedId) {
-        // Still in a focused family view — fold the newly expanded/collapsed
-        // descendants into that same compact layout rather than exiting it.
-        applyFocusVisibility();
-        applyFocusLayout(focusedId);
-      }
+      withStablePosition(d.data.ID, () => {
+        update(d);
+        if (focusedId) {
+          // Still in a focused family view — fold the newly expanded/collapsed
+          // descendants into that same compact layout rather than exiting it.
+          applyFocusVisibility();
+          applyFocusLayout(focusedId);
+        }
+      });
     }
 
     function expandAll() {
@@ -2074,14 +2704,45 @@
     }
 
     /** Locates a person in the tree by ID (expanding collapsed branches if needed), then switches into focus mode on them. */
+    /** Finds a node anywhere in the hierarchy, even inside a collapsed (_children) branch, without expanding anything. */
+    function findNodeAnywhere_(node, id) {
+      if (node.data.ID === id) return node;
+      const kids = node.children || node._children || [];
+      for (const kid of kids) {
+        const found = findNodeAnywhere_(kid, id);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    /** Expands only the direct ancestor chain up to this node — not its own descendants, and not any unrelated sibling branches. */
+    function expandPathTo_(node) {
+      let cur = node.parent;
+      while (cur) {
+        if (cur._children) {
+          cur.children = cur._children;
+          cur._children = null;
+        }
+        cur = cur.parent;
+      }
+    }
+
     function jumpToPersonAndFocus(id) {
       if (!root) return;
 
-      let target = null;
-      root.each(d => { if (!d.data.isVirtualRoot && d.data.ID === id) target = d; });
+      let target = allNodesFlat.find(n => n.data.ID === id) || null;
       if (!target) {
-        expandAll();
-        root.each(d => { if (!d.data.isVirtualRoot && d.data.ID === id) target = d; });
+        // Not currently visible (some ancestor along the way is collapsed) —
+        // find it wherever it is in the full hierarchy, then open only the
+        // direct path down to it. This deliberately does NOT touch the
+        // person's own children/grandchildren, or any unrelated branch
+        // elsewhere in the tree, so the resulting focus view stays limited
+        // to just their immediate family, not their whole descendant line.
+        const found = findNodeAnywhere_(root, id);
+        if (!found) return;
+        expandPathTo_(found);
+        update(root);
+        target = allNodesFlat.find(n => n.data.ID === id);
       }
       if (!target) return;
 
@@ -2108,7 +2769,7 @@
             opt.innerHTML = memberOptionMarkup_(r);
             opt.addEventListener('mousedown', (e) => {
               e.preventDefault();
-              document.getElementById('searchBox').value = r.name;
+              document.getElementById('searchBox').value = pickLocalizedName(r.names);
               list.style.display = 'none';
               jumpToPersonAndFocus(r.id);
             });
@@ -2135,17 +2796,76 @@
     // Guideline — accordion FAQ (click a question to show/hide its answer)
     // =========================================================
     const GUIDE_ITEMS = [
-      { q: 'guide_q1', a: 'guide_a1' },
-      { q: 'guide_q2', a: 'guide_a2' },
-      { q: 'guide_q3', a: 'guide_a3' },
-      { q: 'guide_q10', a: 'guide_a10' },
-      { q: 'guide_q4', a: 'guide_a4' },
-      { q: 'guide_q5', a: 'guide_a5' },
-      { q: 'guide_q9', a: 'guide_a9' },
-      { q: 'guide_q6', a: 'guide_a6' },
-      { q: 'guide_q7', a: 'guide_a7' },
-      { q: 'guide_q8', a: 'guide_a8' }
+      { q: 'guide_q1', a: 'guide_a1' },   // 0
+      { q: 'guide_q2', a: 'guide_a2' },   // 1
+      { q: 'guide_q3', a: 'guide_a3' },   // 2
+      { q: 'guide_q4', a: 'guide_a4' },   // 3
+      { q: 'guide_q5', a: 'guide_a5' },   // 4
+      { q: 'guide_q11', a: 'guide_a11' }, // 5
+      { q: 'guide_q6', a: 'guide_a6' },   // 6
+      { q: 'guide_q7', a: 'guide_a7' },   // 7
+      { q: 'guide_q8', a: 'guide_a8' },   // 8
+      { q: 'guide_q9', a: 'guide_a9' },   // 9
+      { q: 'guide_q12', a: 'guide_a12' }, // 10
+      { q: 'guide_q10', a: 'guide_a10' }, // 11
+      { q: 'guide_q13', a: 'guide_a13' }  // 12
     ];
+
+    /** The clickable "jump to a topic" list shown above the accordion. */
+    /** Opens a specific guide question and scrolls it into view — used by inline cross-reference links inside answers. */
+    function jumpToGuideItem(i) {
+      const items = document.querySelectorAll('#guideAccordion .accordion-item');
+      const target = items[i];
+      if (!target) return;
+      target.classList.add('open');
+      const icon = target.querySelector('.accordion-icon');
+      if (icon) icon.textContent = '−';
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /** A lowercased blob of this item's question+answer text in ALL three languages, so typing in any of them finds a match. */
+    function guideSearchableText_(item) {
+      return ['en', 'lo', 'hmn'].map(lang => {
+        const dict = I18N[lang] || {};
+        const q = dict[item.q] || '';
+        const a = (dict[item.a] || '').replace(/<[^>]+>/g, ' '); // strip HTML tags before matching
+        return q + ' ' + a;
+      }).join(' ').toLowerCase();
+    }
+
+    function wireGuideSearch() {
+      const input = document.getElementById('guideSearchBox');
+      const list = document.getElementById('guideSearchList');
+      if (!input || !list) return;
+
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        list.innerHTML = '';
+        if (!q) { list.style.display = 'none'; return; }
+
+        const matches = GUIDE_ITEMS
+          .map((item, i) => ({ item, i }))
+          .filter(({ item }) => guideSearchableText_(item).includes(q));
+
+        matches.forEach(({ item, i }) => {
+          const opt = document.createElement('div');
+          opt.textContent = (i + 1) + '. ' + t(item.q); // always shown in the currently selected UI language
+          opt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            input.value = '';
+            list.style.display = 'none';
+            jumpToGuideItem(i);
+          });
+          list.appendChild(opt);
+        });
+        list.style.display = matches.length ? 'block' : 'none';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!list.contains(e.target) && e.target !== input) list.style.display = 'none';
+      });
+    }
+    wireGuideSearch();
 
     function renderGuideAccordion() {
       const container = document.getElementById('guideAccordion');
@@ -2161,10 +2881,10 @@
         el.dataset.index = String(i);
         el.innerHTML = `
           <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
-            <span>${t(item.q)}</span>
+            <span>${i + 1}. ${t(item.q)}</span>
             <span class="accordion-icon">${openIndexes.has(String(i)) ? '−' : '+'}</span>
           </button>
-          <div class="accordion-body"><p>${t(item.a)}</p></div>`;
+          <div class="accordion-body">${t(item.a)}</div>`;
         container.appendChild(el);
       });
     }
@@ -2175,6 +2895,15 @@
       item.classList.toggle('open', willOpen);
       headerEl.querySelector('.accordion-icon').textContent = willOpen ? '−' : '+';
     }
+
+    // Inline cross-reference links inside answers (e.g. "see this topic") use
+    // data-guide-jump="<index>" — handle all of them with one delegated listener.
+    document.getElementById('guideAccordion').addEventListener('click', (e) => {
+      const link = e.target.closest('[data-guide-jump]');
+      if (!link) return;
+      e.preventDefault();
+      jumpToGuideItem(parseInt(link.dataset.guideJump, 10));
+    });
 
     renderGuideAccordion();
     applyStaticTranslations();
