@@ -517,6 +517,9 @@
   .link.spouse.hl-spouse { stroke: #e0952f; stroke-width: 5px; }
   .node circle.toggle { fill: var(--accent); cursor: pointer; }
   .node text.toggle-label { fill: #fff; font-size: 10px; text-anchor: middle; pointer-events: none; }
+  .node circle.add-child-btn { fill: #e0952f; cursor: pointer; }
+  .node text.add-child-icon { font-size: 11px; text-anchor: middle; pointer-events: none; }
+  .node circle.toggle-spouse { fill: #2f6fb0; cursor: pointer; }
 
   @media print {
     .sidebar, .lang-switch-fixed, .tree-toolbar, .remove-btn, .toast, .modal-overlay { display: none !important; }
@@ -563,6 +566,11 @@
   .accordion-body { display: none; padding: 0 16px 16px; }
   .accordion-item.open .accordion-body { display: block; }
   .accordion-body p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+  .accordion-body { color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+  .accordion-body ol, .accordion-body ul { margin: 4px 0 8px; padding-left: 22px; }
+  .accordion-body li { margin-bottom: 6px; }
+  .accordion-body a { color: var(--accent); text-decoration: underline; cursor: pointer; }
+
 
   /* --- Tree node avatar thumbnail --- */
   .avatar-bg { fill: var(--bg-alt); }
@@ -587,4 +595,65 @@
     border-radius: 10px;
     box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
   }
+
+  /* --- Avatar options popup (View / Change photo) --- */
+  .avatar-menu {
+    display: none;
+    position: fixed;
+    z-index: 610;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    min-width: 160px;
+  }
+  .avatar-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .avatar-menu button:hover { background: var(--bg-alt); }
+  .avatar-menu button + button { border-top: 1px solid var(--line); }
+
+  /* --- Multi-spouse chip list --- */
+  .chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 10px;
+  }
+  .chip-list:empty { margin: 0; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 12px;
+    background: var(--bg-alt);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .chip-remove {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: var(--danger);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .chip-remove:hover { background: #8a3527; }
 </style>
