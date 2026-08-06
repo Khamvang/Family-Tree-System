@@ -1,4 +1,21 @@
 <style>
+  /*
+   * Restricted to the Lao Unicode block via unicode-range — this makes the
+   * browser automatically use Phetsarath OT (or a fallback Lao font) for any
+   * actual Lao-script character, letter by letter, no matter which UI
+   * language is currently selected. Everything else (English, Hmong's
+   * Latin-based script, digits) simply isn't covered by this range, so it
+   * falls through to the normal font in the same stack. This replaces an
+   * earlier approach that switched the whole page's font based on the
+   * selected UI language — that was wrong, since Lao-script text can appear
+   * (e.g. in an address) even while viewing the app in English or Hmong.
+   */
+  @font-face {
+    font-family: 'AppLaoAware';
+    src: local('Phetsarath OT'), local('Noto Sans Lao'), local('Saysettha OT'), local('Lao UI'), local('DokChampa');
+    unicode-range: U+0E80-0EFF;
+  }
+
   :root {
     --bg: #f6f5ee;          /* soft parchment */
     --bg-alt: #edece1;
@@ -20,12 +37,12 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'AppLaoAware', 'Segoe UI', system-ui, -apple-system, sans-serif;
     line-height: 1.5;
   }
 
   h1, h2, h3 {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: 'AppLaoAware', Georgia, 'Times New Roman', serif;
     color: var(--ink);
     margin: 0 0 0.3em 0;
     letter-spacing: 0.2px;
@@ -36,9 +53,9 @@
   /* The Add/Edit Member form specifically reads better narrow and centered,
      rather than stretching across the whole panel width. */
   .panel-form .container {
-    max-width: 620px;
+    max-width: 540px;
     margin: 32px auto;
-    padding: 32px 36px;
+    padding: 28px 30px;
     background: var(--card-bg);
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -150,6 +167,9 @@
     #printBtn .btn-label { display: none; }
     #printBtn .btn-icon { font-size: 15px; }
     #printBtn { flex: 0.5 !important; }
+    #addMemberBtn .btn-label { display: none; }
+    #addMemberBtn .btn-icon { font-size: 15px; }
+    #addMemberBtn { flex: 0.5 !important; }
 
     .mobile-home {
       display: flex;
@@ -206,6 +226,13 @@
       color: var(--ink);
       cursor: pointer;
     }
+
+    .panel-form .container {
+      margin: 12px auto;
+      padding: 16px 14px;
+      border-radius: 10px;
+    }
+    .form-section-body { padding: 10px 10px 2px; }
   }
 
   /* --- Nav / Index page --- */
@@ -240,14 +267,14 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--ink-soft);
-    margin: 16px 0 6px;
+    margin: 10px 0 4px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
   }
 
   input[type="text"], input[type="date"], input[type="url"], select, textarea {
     width: 100%;
-    padding: 10px 12px;
+    padding: 8px 10px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--card-bg);
@@ -266,22 +293,15 @@
     cursor: not-allowed;
   }
 
-  /* Phetsarath OT applies only to actual Lao-language content — never to
-     English or Hmong text, which keep the app's regular fonts. */
-  #LaoFirstName, #LaoLastName {
-    font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif;
-  }
-  body.lang-lo [data-i18n],
-  body.lang-lo [data-i18n-placeholder]::placeholder,
-  body.lang-lo #toast,
-  body.lang-lo #saveModalMessage {
-    font-family: 'Phetsarath OT', 'Noto Sans Lao', sans-serif;
-  }
+  textarea { resize: vertical; min-height: 56px; }
+  .kb-auto-grow { resize: none; overflow: hidden; }
+  .kb-title-input { min-height: 40px; }
 
-  textarea { resize: vertical; min-height: 70px; }
-
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  @media (max-width: 700px) { .row-3 { grid-template-columns: 1fr; } }
 
   .btn {
     display: inline-block;
@@ -292,6 +312,7 @@
     color: #fff;
     font-size: 14px;
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
     text-decoration: none;
   }
@@ -484,7 +505,40 @@
   }
   .modal-box.error .modal-message { color: var(--danger); }
 
-  .hint { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .hint { font-size: 12px; color: var(--ink-soft); margin: 4px 0 8px; }
+
+  /* --- Compact info-icon tooltip (replaces always-visible hint paragraphs) --- */
+  .info-tip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    vertical-align: middle;
+  }
+  .info-tip-text {
+    display: none;
+    position: absolute;
+    top: 130%;
+    left: 0;
+    z-index: 60;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--ink-soft);
+    width: min(240px, calc(100vw - 48px));
+    box-shadow: var(--shadow);
+    cursor: default;
+  }
+  .info-tip.open .info-tip-text { display: block; }
 
   /* --- Tree page --- */
   .tree-toolbar {
@@ -504,6 +558,10 @@
   .node.highlight rect { stroke: var(--gold); stroke-width: 2.5px; }
   .node text { font-size: 12px; fill: var(--ink); font-family: inherit; }
   .node .years { fill: var(--ink-soft); font-size: 10px; }
+  .node .years-plain { fill: var(--ink-soft); font-size: 10px; }
+  .node .years-birth { fill: #2f6fb0; font-size: 12px; }
+  .node .years-death { fill: #a4432f; font-size: 12px; }
+  .node .phaj-badge { fill: var(--gold); font-size: 10px; }
   .node .alt-name { fill: var(--ink-soft); font-size: 10px; }
   .node .node-name-link { cursor: pointer; }
   .node .node-name-link:hover { text-decoration: underline; fill: var(--accent); }
@@ -521,12 +579,354 @@
   .node text.add-child-icon { font-size: 11px; text-anchor: middle; pointer-events: none; }
   .node circle.toggle-spouse { fill: #2f6fb0; cursor: pointer; }
 
+  .node .cv-print-btn { cursor: pointer; }
+  .node .cv-print-btn text { font-size: 13px; }
+
+  /* --- Printable CV --- */
+  .cv-print-area { display: none; }
+  .cv-page { max-width: 800px; margin: 0 auto; color: var(--ink); }
+  .cv-header { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; }
+  .cv-photo { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); }
+  .cv-photo-placeholder { display: flex; align-items: center; justify-content: center; font-size: 44px; background: var(--bg-alt); color: var(--ink-soft); }
+  .cv-header-info h1 { margin: 0 0 4px; font-size: 24px; }
+  .cv-subline { margin: 2px 0; color: var(--ink-soft); font-size: 13px; }
+  .cv-page h2 { font-family: 'AppLaoAware', Georgia, 'Times New Roman', serif; font-size: 16px; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin: 22px 0 10px; }
+  .cv-empty { color: var(--ink-soft); font-size: 13px; font-style: italic; }
+  .cv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cv-table th, .cv-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .cv-table th { background: var(--bg-alt); }
+  .cv-family-section { font-size: 13px; }
+  .cv-family-row { padding: 3px 0; }
+  .cv-family-label { font-weight: 700; display: inline-block; min-width: 90px; }
+  .cv-notes { font-size: 13px; white-space: pre-wrap; }
+
   @media print {
     .sidebar, .lang-switch-fixed, .tree-toolbar, .remove-btn, .toast, .modal-overlay { display: none !important; }
     .app-shell, .main-content, .panel-tree { height: auto !important; overflow: visible !important; }
     #tree-canvas { width: 100% !important; height: auto !important; }
     body { background: #fff; }
   }
+
+  /* While printing a single member's CV, hide absolutely everything else on the page and show only the CV — takes priority over the tree's own print rules above. */
+  @media print {
+    body.printing-cv .app-shell,
+    body.printing-cv .lang-switch-fixed,
+    body.printing-cv .mobile-home,
+    body.printing-cv .mobile-back-btn,
+    body.printing-cv .toast,
+    body.printing-cv .modal-overlay,
+    body.printing-cv .image-lightbox-overlay,
+    body.printing-cv .avatar-menu {
+      display: none !important;
+    }
+    body.printing-cv .cv-print-area { display: block !important; }
+  }
+
+  /* --- Knowledge Base --- */
+  .kb-category-list { margin-top: 20px; }
+  .kb-category-block {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    background: var(--card-bg);
+  }
+  /* The header is a flex ROW rather than a button itself, so the Edit/Delete
+     buttons can sit on its right-hand side — a <button> can't legally contain
+     other <button>s, so the expand/collapse click target is its own child
+     button that grows to fill whatever space the actions don't use. */
+  .kb-category-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 0;
+    background: var(--bg-alt);
+  }
+  .kb-category-header-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .kb-category-header-main:hover { background: #e6e4d5; }
+  .kb-category-name { min-width: 0; overflow-wrap: anywhere; }
+
+  .kb-category-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .kb-category-actions button {
+    border: 1px solid var(--line);
+    background: var(--card-bg);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    line-height: 1.3;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .kb-category-actions button:hover { background: var(--bg-alt); }
+  .kb-category-actions .kb-category-delete-btn { color: var(--danger); border-color: var(--danger); }
+  .kb-category-actions .kb-category-delete-btn:hover { background: rgba(164,67,47,0.08); }
+
+  /* On narrow screens the text labels drop away so both buttons stay on the
+     same line as the category name instead of squeezing it to nothing. */
+  @media (max-width: 700px) {
+    .kb-category-header { padding-right: 8px; }
+    .kb-category-header-main { padding: 14px 10px; }
+    .kb-category-actions { gap: 4px; }
+    .kb-category-actions button { padding: 6px 7px; }
+    .kb-category-actions .kb-cat-btn-label { display: none; }
+  }
+
+  .kb-category-icon {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kb-category-body { padding: 10px 16px 14px; }
+
+  /* --- Category icon: the picture at the far left of each category row.
+     A sibling of the expand/collapse button (not inside it) so clicking the
+     picture opens the lightbox without also toggling the category open. --- */
+  .kb-category-thumb {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    margin-left: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kb-category-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .kb-category-thumb.clickable { cursor: zoom-in; }
+  .kb-category-thumb.clickable:hover { border-color: var(--accent); }
+  .kb-category-thumb.is-empty {
+    background: var(--bg-alt);
+    border-style: dashed;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+
+  /* --- KB panel heading: "📚 Knowledge Base", or the open topic's category
+     (its own icon + name) while a topic detail is showing. --- */
+  .kb-panel-title { display: flex; align-items: center; gap: 12px; }
+  .kb-panel-icon { flex-shrink: 0; display: flex; align-items: center; line-height: 1; }
+  .kb-panel-icon img {
+    display: block;
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+  }
+  .kb-panel-icon.clickable { cursor: zoom-in; }
+  .kb-panel-icon.clickable img:hover { border-color: var(--accent); }
+  /* Lets a long category name wrap instead of squeezing the icon. */
+  .kb-panel-title-text { min-width: 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 700px) {
+    .kb-panel-title { gap: 10px; }
+    .kb-panel-icon img { width: 34px; height: 34px; }
+  }
+
+  /* --- Topic detail: attachments, two per row and shown whole ---
+     These are usually photographs of handwritten pages, so the small
+     square-cropped thumbnails used elsewhere made them unreadable. Here each
+     cell keeps the picture's own proportions (never cropped) and fills half the
+     column width; align-items:start stops a short image being stretched to
+     match a tall one beside it. --- */
+  .kb-detail-media-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+    margin: 8px 0 4px;
+  }
+  .kb-detail-media-grid .gallery-item { width: auto; min-width: 0; }
+  .kb-detail-media-grid .gallery-thumb {
+    width: 100%;
+    height: auto;
+    background: var(--bg-alt);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .kb-detail-media-grid .gallery-thumb img {
+    width: 100%;
+    height: auto;
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: 10px;
+  }
+  .kb-detail-media-grid .gallery-thumb a.gallery-file {
+    height: 110px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .kb-detail-media-grid .gallery-caption { font-size: 12px; margin-top: 7px; }
+  /* Video/audio embeds already span a full cell — drop the narrow cap. */
+  .kb-detail-media-grid .kb-media-item-wide { width: auto; max-width: none; }
+
+  /* --- Topic detail: Previous / Next navigation --- */
+  .kb-detail-nav-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .kb-nav-arrow { padding: 6px 12px !important; font-size: 15px !important; line-height: 1; }
+  .kb-nav-arrow:disabled { opacity: 0.35; cursor: default; }
+  .kb-nav-arrow:disabled:hover { background: transparent; }
+
+  .kb-detail-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 28px 0 8px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .kb-nav-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    min-width: 0;
+    color: var(--ink);
+  }
+  .kb-nav-btn:hover { border-color: var(--accent); background: var(--bg-alt); }
+  .kb-nav-next { text-align: right; align-items: flex-end; }
+  .kb-nav-dir {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+  }
+  .kb-nav-label {
+    font-size: 14px;
+    color: var(--ink);
+    /* Long topic titles stay on two lines rather than stretching the button. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 700px) {
+    .kb-detail-media-grid { grid-template-columns: 1fr; gap: 14px; }
+    .kb-detail-media-grid .gallery-thumb img { max-height: 70vh; }
+    .kb-detail-nav { gap: 10px; margin-top: 22px; }
+    .kb-nav-btn { padding: 10px 12px; }
+    .kb-nav-label { font-size: 13px; }
+  }
+
+  /* --- Category icon picker inside the Add/Edit Category form --- */
+  .kb-icon-editor { display: flex; align-items: flex-start; gap: 14px; margin: 4px 0 6px; }
+  .kb-icon-editor-side { flex: 1; min-width: 0; }
+  .kb-icon-editor-side .hint { margin: 8px 0 0; }
+
+  .kb-icon-dropzone { position: relative; width: 96px; height: 96px; flex-shrink: 0; outline: none; }
+  .kb-icon-box {
+    width: 100%; height: 100%;
+    border-radius: 12px;
+    border: 2px dashed var(--line);
+    background: var(--bg-alt);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .kb-icon-dropzone:hover .kb-icon-box,
+  .kb-icon-dropzone:focus .kb-icon-box,
+  .kb-icon-dropzone.dragover .kb-icon-box {
+    border-color: var(--accent);
+    background: rgba(74, 103, 65, 0.1);
+  }
+  .kb-icon-box.has-image { border-style: solid; border-color: var(--line); background: var(--card-bg); cursor: zoom-in; }
+  .kb-icon-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .kb-icon-box .dropzone-placeholder { font-size: 36px; }
+  .kb-icon-remove-btn { top: 2px; right: 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+
+  @media (max-width: 700px) {
+    .kb-category-thumb { width: 30px; height: 30px; margin-left: 8px; }
+    .kb-icon-editor { gap: 10px; }
+    .kb-icon-dropzone { width: 80px; height: 80px; }
+  }
+
+  .kb-item-node { margin-top: 6px; }
+  .kb-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+  }
+  .kb-item-toggle {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    background: var(--card-bg);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .kb-item-toggle:hover { background: rgba(74,103,65,0.1); }
+  .kb-item-toggle-spacer { flex-shrink: 0; width: 20px; }
+  .kb-item-title {
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .kb-item-title:hover { color: var(--accent); text-decoration: underline; }
+  .kb-item-children { border-left: 1px dashed var(--line); padding-left: 6px; }
+
+  .kb-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+  .kb-search-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .kb-search-row input[type="text"] { flex: 1; min-width: 180px; }
+  /* Search-result variant: same row, but no expand button and no actions —
+     just the icon and the category name. The left padding lives on the name so
+     the icon lines up with the one in the interactive browse list above. */
+  .kb-category-header-static {
+    width: 100%;
+    padding: 14px 12px 14px 0;
+    background: var(--bg-alt);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .kb-category-header-static .kb-category-name { padding-left: 16px; }
+  .kb-detail-toprow { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .kb-detail-actions { display: flex; gap: 8px; }
+  .kb-btn-sm { padding: 6px 12px !important; font-size: 12px !important; }
+  .kb-detail-title { margin-top: 4px; }
+  .kb-detail-description { white-space: pre-wrap; color: var(--ink); font-size: 14px; line-height: 1.7; margin: 12px 0 20px; }
+  .kb-media-gallery { justify-content: flex-start; }
+  .kb-media-item-wide { width: 100%; max-width: 480px; }
+  .kb-media-embed { width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; position: relative; }
+  .kb-media-embed iframe { width: 100%; height: 100%; border: none; }
+  .kb-media-embed-audio { aspect-ratio: auto; height: 60px; background: var(--bg-alt); }
 
   /* --- Guideline accordion --- */
   .accordion { margin-top: 20px; }
@@ -596,6 +996,51 @@
     box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
   }
 
+  /* --- Profile photo crop modal --- */
+  .crop-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(34, 48, 31, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 620;
+  }
+  .crop-modal-overlay.active { display: flex; }
+  .crop-modal-box {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+    width: min(440px, 92vw);
+  }
+  .crop-modal-box h3 { margin-bottom: 2px; }
+  .crop-modal-image-wrap {
+    width: 100%;
+    height: min(360px, 60vh);
+    margin: 14px 0 18px;
+    background: #222;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .crop-modal-image-wrap img { display: block; max-width: 100%; }
+  .crop-modal-actions { display: flex; gap: 10px; }
+  /* Makes Cropper.js's crop selection render as a circle instead of a rectangle — the crop itself is still a square region underneath, matching the circular avatar it'll be displayed in. */
+  .crop-modal-image-wrap .cropper-view-box,
+  .crop-modal-image-wrap .cropper-face {
+    border-radius: 50%;
+  }
+  .crop-modal-image-wrap .cropper-view-box {
+    outline: 1px solid var(--gold);
+    outline-color: rgba(184, 144, 47, 0.75);
+  }
+  /* Category icons render as rounded squares rather than circles, so the crop
+     selection is shown the same way — set by openCropModal_'s `square` option. */
+  .crop-modal-overlay.crop-square .cropper-view-box,
+  .crop-modal-overlay.crop-square .cropper-face {
+    border-radius: 8px;
+  }
+
   /* --- Avatar options popup (View / Change photo) --- */
   .avatar-menu {
     display: none;
@@ -623,6 +1068,14 @@
   }
   .avatar-menu button:hover { background: var(--bg-alt); }
   .avatar-menu button + button { border-top: 1px solid var(--line); }
+  .avatar-menu-heading {
+    padding: 8px 14px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--ink-soft);
+  }
 
   /* --- Multi-spouse chip list --- */
   .chip-list {
@@ -656,4 +1109,84 @@
     padding: 0;
   }
   .chip-remove:hover { background: #8a3527; }
+
+  /* --- Collapsible form sections (Names / Birth / Death / Address History / Education / Work / Relationships / Notes) --- */
+  .form-section {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-top: 14px;
+    background: var(--card-bg);
+  }
+  .form-section-header {
+    width: 100%;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--bg-alt);
+    border: none;
+    cursor: pointer;
+    text-align: left;
+  }
+  .form-section-header:hover { background: #e6e4d5; }
+  .form-section-title { font-family: 'AppLaoAware', Georgia, 'Times New Roman', serif; font-size: 15px; font-weight: 700; color: var(--ink); }
+  .form-section-icon {
+    display: inline-block;
+    font-size: 14px;
+    color: var(--ink-soft);
+    transition: transform 0.15s ease;
+  }
+  .form-section.collapsed .form-section-icon { transform: rotate(-90deg); }
+  .form-section-body { padding: 12px 14px 2px; }
+  .form-section.collapsed .form-section-body { display: none; }
+  .form-section-body > label:first-child,
+  .form-section-body > .row:first-child,
+  .form-section-body > h3:first-child { margin-top: 0; }
+  .form-section-hint-locked {
+    padding: 4px 0 10px;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+
+  /* --- Repeating record lists (Address / Education / Work history) --- */
+  .record-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .record-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg-alt);
+  }
+  .record-card-main { font-size: 13px; color: var(--ink); line-height: 1.5; min-width: 0; overflow-wrap: break-word; }
+  .record-card-main .record-title { font-weight: 700; }
+  .record-card-main .record-detail { color: var(--ink-soft); font-size: 12px; }
+  .record-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .record-card-actions button {
+    border: 1px solid var(--line);
+    background: var(--card-bg);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .record-card-actions button:hover { background: var(--bg-alt); }
+  .record-card-actions .record-delete-btn { color: var(--danger); border-color: var(--danger); }
+  .record-card-actions .record-delete-btn:hover { background: rgba(164,67,47,0.08); }
+
+  .record-form {
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 14px 16px 6px;
+    margin-bottom: 14px;
+    background: var(--card-bg);
+  }
+  .record-form-toprow { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .record-form label { margin-top: 12px; }
+  .record-form label:first-child { margin-top: 0; }
 </style>

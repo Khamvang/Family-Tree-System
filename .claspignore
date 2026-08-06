@@ -1,0 +1,12 @@
+# Only these four files are ever pushed to Apps Script.
+# Everything else in this folder (notes, git, setup docs) stays local.
+#
+# The idiom is "ignore everything, then un-ignore what we want" — safer than
+# listing exclusions, because a new local file can never leak into the live
+# project by accident.
+**/**
+
+!appsscript.json
+!Code.gs
+!Index.html
+!Styles.html

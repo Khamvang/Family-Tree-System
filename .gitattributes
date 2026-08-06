@@ -1,0 +1,7 @@
+# Keep line endings as LF everywhere.
+#
+# Without this, git converts these files to CRLF on checkout (the warnings you
+# saw). That isn't harmful in itself, but it makes whole files show as changed
+# in `git diff` after a checkout, which buries the real edits — and Claude
+# always writes LF, so every round-trip would churn.
+* text=auto eol=lf
