@@ -1,0 +1,93 @@
+# Local workflow — clasp + git
+
+Set up and verified 2026-08-06. Replaces the old "Claude sends files, KHAM pastes into the
+Apps Script editor" loop.
+
+## Standing instruction
+
+**After every code change, write the changed files to `D:\Dev\Hmoob Keeb Kwm` on the
+connected device** (`desktop-vsnv066`) — don't wait to be asked. Still `SendUserFile` them
+too, so they're visible in the conversation and so `device_commit_files` has a `fileUuid`
+to use.
+
+Sequence: edit in the session workspace → verify → `SendUserFile` (grab the `file_uuid`
+from the result) → `mcp__remote-devices__device_commit_files` with that uuid, the Windows
+path, and `force: true` → confirm with `device_list_dir`.
+
+Windows paths need escaped backslashes in JSON:
+`"D:\\Dev\\Hmoob Keeb Kwm\\Index.html"`.
+
+Then tell KHAM to run: `clasp push` → reload the app → `git add . && git commit -m "…"` →
+`git push`.
+
+**Only ever write the three source files** (`Code.gs`, `Index.html`, `Styles.html`).
+Everything else in the folder is his — re-committing `.clasp.json` would clobber his
+Script ID, and `appsscript.json` must never be written by Claude (see below).
+
+## Requirement, and what to do when it fails
+
+Works only while the Claude desktop app is open **and that folder is connected to the
+session**. Folder grants are per-session — in a new session KHAM must add the folder again
+("Add folder" in the desktop app). If `mcp__remote-devices__*` is missing or erroring, fall
+back to `SendUserFile` alone, say the folder isn't reachable, and don't retry in a loop.
+
+## Project facts
+
+- **Apps Script project:** "Family Tree System"
+- **Script ID:** `1SVvrglT_0HfQgXbWZ_PSPqcTz5fZR0ODkxfiuLnQkHyzkydKJXbM14cV`
+- **GitHub:** <https://github.com/Khamvang/Hmoob-Keeb-Kwm> (branch `main`)
+- **Three different Google accounts in play** — normal, but check the right one when
+  something 403s:
+  - Cowork / this session: `khamvang.c@lalco.la`
+  - clasp is authorised as: `kham.chuesa@gmail.com`
+  - git commits as: `kham.lalco@gmail.com`
+- **`appsscript.json`** (pulled from Google, do not hand-write):
+  `timeZone: Asia/Bangkok`, `runtimeVersion: V8`, webapp `executeAs: USER_DEPLOYING`,
+  `access: ANYONE_ANONYMOUS` — i.e. the app is open to anyone with the link, no sign-in.
+
+## Folder contents
+
+| File | Pushed to Apps Script? | Notes |
+|---|---|---|
+| `Code.gs`, `Index.html`, `Styles.html` | yes | Claude writes these |
+| `appsscript.json` | yes | from `clasp pull` — **never write it** |
+| `.clasp.json` | no | scriptId + `scriptExtensions: [".gs", ".js"]` |
+| `.claspignore` | no | ignore-all, then un-ignore the four above |
+| `.gitattributes` | no | `* text=auto eol=lf` — stops CRLF churn |
+| `.gitignore` | no | excludes `.clasprc.json` |
+| `SETUP.md`, `README.md` | no | docs |
+
+## clasp (v3.3.0, verified from google/clasp 2026-08-06)
+
+- `npm install -g @google/clasp`; Apps Script API ON at
+  <https://script.google.com/home/usersettings>; `clasp login`
+- `push` / `pull` kept their v2 names; `clone`→`clone-script`, `status`→`show-file-status`,
+  `deploy`→`create-deployment`
+- **`clasp pull` writes `.js` by default** — the first entry in `scriptExtensions`. Fixed by
+  setting `[".gs", ".js"]`, otherwise you end up with both `Code.js` and `Code.gs`.
+- **`clasp push` deletes remote files with no local counterpart.** The project should hold
+  exactly the four pushed files.
+- Never invent `appsscript.json` — a wrong manifest overwrites the live one and can change
+  the web app's `executeAs` / `access` or break the deployment.
+
+## Windows setup notes (learned the hard way)
+
+- Node wasn't installed. `winget install OpenJS.NodeJS.LTS` (v24.19.0) worked, but VS Code
+  needed a **full restart** — not just a new terminal — to see it on PATH.
+- PowerShell blocks `.ps1` by default, so `node.exe` ran while `npm` didn't
+  ("running scripts is disabled"). Fixed with
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Would have hit `clasp` too.
+- The API toggle on the settings page sits at the far right of the row and is easy to miss.
+- The GitHub repo already had a manual upload of the same three files, so the first
+  `git pull --rebase` hit add/add conflicts. Resolved with
+  `git checkout --theirs <files>` (during a rebase `--theirs` = the commit being replayed,
+  i.e. the local ones) and `git -c core.editor=true rebase --continue` to skip vim.
+
+## Status: complete
+
+Node 24.19.0 · npm 11.17.0 · clasp 3.3.0 · git 2.52.0 · API On · logged in · Script ID set ·
+baseline committed and pushed to GitHub.
+
+**Verified in sync:** after overwriting the pulled-from-Google files with this session's
+versions, `git status` reported a clean tree — proving the live Apps Script project is
+byte-identical to the code in this session. Nothing outstanding.
